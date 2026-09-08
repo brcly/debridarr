@@ -99,16 +99,31 @@ async function prepareDownload(target: PlayTarget, options: EnsureOptions): Prom
     }
     const ownedTorrent = torrent!;
     try {
-      // Unlimited per-torrent limits prevent inherited automatic removal.
-      await qbt.setShareLimits(hash, { ratioLimit: -1, seedingTimeLimit: -1 }, signal);
-      if (!ownedTorrent.sequential) await qbt.setSequential(hash, signal);
-      if (!ownedTorrent.firstLastPiecePrio) await qbt.setFirstLastPiecePriority(hash, signal);
+      const stopped = /^(paused|stopped)/.test(ownedTorrent.state);
+      // Run it before anything else: a magnet only fetches its metadata — and
+      // therefore its file list — while running, and every configuration call
+      // below needs that metadata to exist first.
+      let started = false;
+      if (stopped && ownedTorrent.progress < 1) { await qbt.setRunning(hash, true, signal); started = true; }
       let files = await qbt.files(hash, signal);
       if (!files.length) files = await waitFor(async () => {
         const next = await qbt.files(hash, signal); return next.length ? next : undefined;
       }, METADATA_TIMEOUT_MS, now, signal) ?? [];
       const file = pickFile(files, target);
       if (!file) throw new DownloadError(files.length ? 'no_file' : 'no_metadata', files.length ? 'Could not find the wanted file in this torrent.' : 'Torrent metadata is not ready.');
+
+      // Metadata is present now — tune the torrent. These are optimisations
+      // (unlimited share limits block inherited auto-removal; sequential and
+      // first/last-piece help a future partial stream). A qBittorrent that
+      // rejects one must not block playback; the retention sweeper reapplies
+      // share limits, and each call is logged.
+      const configured = await qbt.torrent(hash, signal) ?? ownedTorrent;
+      const optional = (label: string, run: Promise<void>) =>
+        run.catch((error: unknown) => console.warn(`Debridarr ${label} for ${hash.slice(0, 8)} skipped: ${(error as { code?: unknown }).code ?? (error as Error).message}`));
+      await optional('setShareLimits', qbt.setShareLimits(hash, { ratioLimit: -1, seedingTimeLimit: -1 }, signal));
+      if (!configured.sequential) await optional('setSequential', qbt.setSequential(hash, signal));
+      if (!configured.firstLastPiecePrio) await optional('setFirstLastPiecePriority', qbt.setFirstLastPiecePriority(hash, signal));
+
       const selected = [...(record!.selectedFiles ?? [])];
       if (!selected.some(f => f.index === file.index)) selected.push({ index: file.index, name: file.name, bytes: file.size });
       // Persist the union before changing priorities, so a crash cannot lose selection.
@@ -117,11 +132,16 @@ async function prepareDownload(target: PlayTarget, options: EnsureOptions): Prom
       const wanted = new Set(selected.map(f => f.index));
       await qbt.setFilePriorities(hash, files.filter(f => !wanted.has(f.index) && f.priority > 0).map(f => f.index), 0, signal);
       await qbt.setFilePriorities(hash, files.filter(f => wanted.has(f.index) && f.priority === 0).map(f => f.index), 1, signal);
-      if (/^(paused|stopped)/.test(ownedTorrent.state) && file.progress < 1) await qbt.setRunning(hash, true, signal);
-      const state = { record, torrent: ownedTorrent, file };
+      // A torrent that was complete overall but stopped (re-watch) still needs
+      // starting when a newly requested file in the same pack is incomplete.
+      if (!started && stopped && file.progress < 1) await qbt.setRunning(hash, true, signal);
+      const state = { record, torrent: configured, file };
       options.onReady?.(state); // Reserve playback before releasing the hash lock.
       return state;
     } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      const detail = typeof code === 'string' ? code : error instanceof Error ? error.message : String(error);
+      console.warn(`Debridarr preparation failed for ${hash.slice(0, 8)} (${target.title}): ${detail}`);
       const current = store.get(hash)!;
       await store.upsert({ ...current, lifecycle: error instanceof DownloadError && error.code === 'no_file' && !current.selectedFiles?.length ? 'failed' : current.lifecycle ?? 'registering', failure: error instanceof DownloadError ? error.code : 'preparation_failed' });
       throw error;

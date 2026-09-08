@@ -1,6 +1,9 @@
 export type ConnectionCode = 'connected' | 'not_configured' | 'authentication' | 'unreachable' | 'timeout' | 'unexpected_response';
 export interface ConnectionResult { ok: boolean; code: ConnectionCode; message: string; version?: string }
 export class ConnectionError extends Error {
+  // HTTP status that produced this error, when there was a response (0 for an
+  // opaque redirect). Diagnostic only; never surfaced to API clients.
+  status?: number;
   constructor(public readonly code: ConnectionCode) { super(code); }
 }
 
@@ -8,7 +11,9 @@ export async function serviceFetch(url: string, signal: AbortSignal, options: Re
   const response = await fetch(url, { ...options, signal, redirect: 'manual' });
   if (!response.ok) {
     await response.body?.cancel();
-    throw new ConnectionError([401, 403].includes(response.status) ? 'authentication' : 'unexpected_response');
+    const error = new ConnectionError([401, 403].includes(response.status) ? 'authentication' : 'unexpected_response');
+    error.status = response.status;
+    throw error;
   }
   return response;
 }

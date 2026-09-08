@@ -202,3 +202,88 @@ test('DEBRIDARR_CATEGORY is the qBittorrent category used on add', async t => {
   assert.equal(DEBRIDARR_CATEGORY, 'debridarr');
   assert.ok(seen.includes('/api/v2/torrents/add'));
 });
+
+test('a freshly added stopped torrent is started before its files are read, so magnets can fetch metadata', async t => {
+  const seen: string[] = [];
+  let present = false;
+  let running = false;
+  let tag = '';
+  const qbt = createServer((request, response) => {
+    void (async () => {
+      const path = new URL(request.url!, 'http://x').pathname;
+      if (path === '/api/v2/auth/login') { response.setHeader('Set-Cookie', 'SID=s; Path=/'); response.end('Ok.'); return; }
+      const body = request.method === 'POST' ? await form(request) : new URLSearchParams();
+      seen.push(path);
+      if (path === '/api/v2/app/version') { response.end('v5.2.3'); return; }
+      if (path === '/api/v2/torrents/add') {
+        assert.equal(body.get('stopped'), 'true', 'Debridarr adds torrents stopped');
+        present = true; tag = body.get('tags') ?? ''; response.end('Ok.'); return;
+      }
+      if (path === '/api/v2/torrents/start') { running = true; response.end('Ok.'); return; }
+      if (path === '/api/v2/torrents/info') {
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(present ? [{
+          category: 'debridarr', tags: tag, hash: HASH, name: 'The Lost Boys 1987', state: running ? 'metaDL' : 'stoppedDL',
+          progress: 0, size: 100, ratio: 0, save_path: '/downloads', content_path: '/downloads/x',
+          amount_left: 100, num_seeds: 0, num_leechs: 0, dlspeed: 0, eta: 0, seq_dl: false, f_l_piece_prio: false,
+        }] : []));
+        return;
+      }
+      if (path === '/api/v2/torrents/files') {
+        response.setHeader('Content-Type', 'application/json');
+        // A magnet only exposes its file list once it is running and has metadata.
+        response.end(JSON.stringify(running ? [{ index: 0, name: 'The.Lost.Boys.1987/movie.mkv', size: 100, progress: 0, priority: 1 }] : []));
+        return;
+      }
+      response.end('Ok.');
+    })().catch(() => { response.statusCode = 500; response.end('e'); });
+  });
+  const base = await listen(qbt, t);
+  const s = await store(t);
+  const target: PlayTarget = { title: 'The Lost Boys 1987 REMASTERED 1080p BluRay x265-RBG', size: 100, imdbId: 'tt0093437', type: 'movie', infoHash: HASH };
+  const state = await ensureDownload(target, { qbt: new QBittorrentClient({ url: base, username: 'u', password: 'p' }), store: s, signal: AbortSignal.timeout(5000) });
+
+  assert.ok(seen.includes('/api/v2/torrents/start'));
+  assert.ok(seen.indexOf('/api/v2/torrents/start') < seen.indexOf('/api/v2/torrents/files'), 'started before reading files');
+  assert.equal(state.record.lifecycle, 'managed');
+  assert.equal(state.record.fileName, 'The.Lost.Boys.1987/movie.mkv');
+});
+
+test('preparation still completes when qBittorrent rejects the optional tuning calls', async t => {
+  let present = false;
+  let running = false;
+  let tag = '';
+  const qbt = createServer((request, response) => {
+    void (async () => {
+      const path = new URL(request.url!, 'http://x').pathname;
+      if (path === '/api/v2/auth/login') { response.setHeader('Set-Cookie', 'SID=s; Path=/'); response.end('Ok.'); return; }
+      const body = request.method === 'POST' ? await form(request) : new URLSearchParams();
+      if (path === '/api/v2/app/version') { response.end('v5.2.3'); return; }
+      if (['/api/v2/torrents/setShareLimits', '/api/v2/torrents/toggleSequentialDownload', '/api/v2/torrents/toggleFirstLastPiecePrio'].includes(path)) {
+        response.statusCode = 400; response.end('Bad Request'); return; // qBittorrent 5.2.3 refuses these here
+      }
+      if (path === '/api/v2/torrents/add') { present = true; tag = body.get('tags') ?? ''; response.end('Ok.'); return; }
+      if (path === '/api/v2/torrents/start') { running = true; response.end('Ok.'); return; }
+      if (path === '/api/v2/torrents/info') {
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(present ? [{
+          category: 'debridarr', tags: tag, hash: HASH, name: 'The Lost Boys 1987', state: running ? 'downloading' : 'stoppedDL',
+          progress: 0, size: 100, ratio: 0, save_path: '/downloads', content_path: '/downloads/x',
+          amount_left: 100, num_seeds: 0, num_leechs: 0, dlspeed: 0, eta: 0, seq_dl: false, f_l_piece_prio: false,
+        }] : []));
+        return;
+      }
+      if (path === '/api/v2/torrents/files') {
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(running ? [{ index: 0, name: 'movie.mkv', size: 100, progress: 0, priority: 1 }] : []));
+        return;
+      }
+      response.end('Ok.');
+    })().catch(() => { response.statusCode = 500; response.end('e'); });
+  });
+  const base = await listen(qbt, t);
+  const s = await store(t);
+  const state = await ensureDownload(movie, { qbt: new QBittorrentClient({ url: base, username: 'u', password: 'p' }), store: s, signal: AbortSignal.timeout(5000) });
+  assert.equal(state.record.lifecycle, 'managed');
+  assert.equal(s.get(HASH)?.lifecycle, 'managed');
+});

@@ -133,6 +133,9 @@ export class QBittorrentClient {
         this.authed = false;
         return send();
       }
+      if (error instanceof ConnectionError) {
+        console.warn(`Debridarr qBittorrent ${form ? 'POST' : 'GET'} ${path.split('?')[0]} -> ${error.status ?? '?'} (${error.code})`);
+      }
       throw error;
     }
   }
@@ -165,8 +168,16 @@ export class QBittorrentClient {
   }
 
   async files(infoHash: string, signal: AbortSignal): Promise<QbtFile[]> {
-    const list = await this.json(`/api/v2/torrents/files?hash=${encodeURIComponent(infoHash)}`, signal);
-    if (!Array.isArray(list)) throw new ConnectionError('unexpected_response');
+    let list: unknown;
+    try {
+      list = await this.json(`/api/v2/torrents/files?hash=${encodeURIComponent(infoHash)}`, signal);
+    } catch (error) {
+      // qBittorrent answers 404 (or a non-JSON body) for a torrent whose
+      // metadata has not arrived yet; that is "no files known", not a fault.
+      if (error instanceof ConnectionError && error.code === 'unexpected_response') return [];
+      throw error;
+    }
+    if (!Array.isArray(list)) return [];
     return list.map((raw, fallback): QbtFile => {
       const r = (raw ?? {}) as Record<string, unknown>;
       return {

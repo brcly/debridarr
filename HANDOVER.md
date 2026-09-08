@@ -19,12 +19,26 @@ The latest work implements the approved audit remediation plan for all eight
 findings. No live user services, torrents, or external credentials were changed
 while testing. Existing installations need a new private addon URL.
 
-Post-audit fix: the qBittorrent client now accepts address-based auth bypass
-(qBittorrent 5.1+ "bypass authentication for clients on localhost / in
-whitelisted IP subnets"), where `/api/v2/auth/login` returns `204` with no `SID`
-cookie. The connection test previously reported "unexpected response" against
-such a setup. See `src/integrations/qbittorrent/client.ts` and
-`test/qbittorrent.test.ts`.
+Post-audit fixes (against a real OMV / qBittorrent 5.2.3 stack):
+
+- The qBittorrent client accepts address-based auth bypass (qBittorrent 5.1+
+  "bypass authentication for clients on localhost / in whitelisted IP subnets"),
+  where `/api/v2/auth/login` returns `204` with no `SID` cookie. The connection
+  test previously reported "unexpected response". See
+  `src/integrations/qbittorrent/client.ts`, `test/qbittorrent.test.ts`.
+- Preparation was reordered so a magnet works. It now: starts the freshly added
+  (stopped) torrent first (a magnet only fetches its metadata/file list while
+  running); waits for the file list; picks the file; *then* applies the tuning
+  calls (`setShareLimits`, sequential, first/last-piece) that a metadata-less
+  torrent in qBittorrent 5.2.3 rejects with a non-2xx. Those tuning calls are now
+  best-effort — a rejection is logged, not fatal (the retention sweeper reapplies
+  share limits). Previously the download stuck at `registering` /
+  `preparation failed` and stayed stopped in qBittorrent.
+  `QBittorrentClient.files()` treats a `404` / non-array (metadata not ready) as
+  "no files known" instead of an error. `QBittorrentClient.api()` logs
+  `METHOD path -> status` on a failed qBittorrent call; unexpected
+  request-handler errors and preparation failures log a concise cause
+  (`src/server.ts`, `src/downloads/manager.ts`).
 
 ## Security audit remediation
 
