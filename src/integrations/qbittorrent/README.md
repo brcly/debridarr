@@ -2,8 +2,11 @@
 
 `QBittorrentClient` handles Web API authentication and torrent operations for
 playback, administration and retention. It reuses its session and retries one
-expired authentication response. Responses are bounded and upstream bodies are
-not exposed as errors.
+expired authentication response. It also accepts qBittorrent 5.1+ address-based
+auth bypass ("bypass authentication for clients on localhost / in whitelisted IP
+subnets"), where `/api/v2/auth/login` returns `204` with no `SID` cookie and
+later requests are authorised by source address; in that mode no cookie is sent.
+Responses are bounded and upstream bodies are not exposed as errors.
 
 - `test()` / `version()`: connection check.
 - `torrent(hash)` / `files(hash)`: normalized status, including category/tags,

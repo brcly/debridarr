@@ -68,6 +68,9 @@ function toTorrent(raw: unknown): QbtTorrent | undefined {
 // expiry, and the torrent operations `/play` and the retention sweeper need.
 export class QBittorrentClient {
   private cookie = '';
+  // Set once login has established a working session, whether via a SID cookie
+  // or qBittorrent's IP-address auth bypass (which issues no cookie).
+  private authed = false;
   constructor(private readonly settings: Settings['qbittorrent']) {}
 
   get identity(): string { return sourceIdentity({ url: this.settings.url }); }
@@ -87,10 +90,24 @@ export class QBittorrentClient {
     });
     const body = (await smallText(response)).trim();
     if (body === 'Fails.') throw new ConnectionError('authentication');
-    if (body !== 'Ok.') throw new ConnectionError('unexpected_response');
     const cookie = response.headers.getSetCookie().map(value => value.split(';')[0]!).find(value => /^SID=[\w-]+$/.test(value));
-    if (!cookie) throw new ConnectionError('authentication');
-    this.cookie = cookie;
+    if (body === 'Ok.') {
+      // A normal login must hand back a session cookie.
+      if (!cookie) throw new ConnectionError('authentication');
+      this.cookie = cookie;
+      this.authed = true;
+      return;
+    }
+    // qBittorrent 5.1+ with "bypass authentication for clients on localhost / in
+    // whitelisted IP subnets" authorises by source address: the login endpoint
+    // returns 204 (or 200 with an empty body) and no SID cookie. Proceed without
+    // a cookie; every later request is authorised the same way.
+    if (response.status === 204 || body === '') {
+      this.cookie = cookie ?? '';
+      this.authed = true;
+      return;
+    }
+    throw new ConnectionError('unexpected_response');
   }
 
   // GET/POST an API path with the session cookie, logging in first and retrying
@@ -98,8 +115,10 @@ export class QBittorrentClient {
   private async api(path: string, signal: AbortSignal, form?: Record<string, string> | FormData): Promise<Response> {
     if (!this.configured) throw new ConnectionError('not_configured');
     const send = async () => {
-      if (!this.cookie) await this.login(signal);
-      const init: RequestInit = { headers: { Cookie: this.cookie, Origin: this.origin } };
+      if (!this.cookie && !this.authed) await this.login(signal);
+      const headers: Record<string, string> = { Origin: this.origin };
+      if (this.cookie) headers.Cookie = this.cookie;
+      const init: RequestInit = { headers };
       if (form) {
         init.method = 'POST';
         init.body = form instanceof FormData ? form : new URLSearchParams(form);
@@ -111,6 +130,7 @@ export class QBittorrentClient {
     } catch (error) {
       if (error instanceof ConnectionError && error.code === 'authentication') {
         this.cookie = '';
+        this.authed = false;
         return send();
       }
       throw error;

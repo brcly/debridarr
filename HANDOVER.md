@@ -19,6 +19,13 @@ The latest work implements the approved audit remediation plan for all eight
 findings. No live user services, torrents, or external credentials were changed
 while testing. Existing installations need a new private addon URL.
 
+Post-audit fix: the qBittorrent client now accepts address-based auth bypass
+(qBittorrent 5.1+ "bypass authentication for clients on localhost / in
+whitelisted IP subnets"), where `/api/v2/auth/login` returns `204` with no `SID`
+cookie. The connection test previously reported "unexpected response" against
+such a setup. See `src/integrations/qbittorrent/client.ts` and
+`test/qbittorrent.test.ts`.
+
 ## Security audit remediation
 
 | Audited failure | Current behavior | Main code |
