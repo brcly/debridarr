@@ -103,6 +103,12 @@ async function prepareDownload(target: PlayTarget, options: EnsureOptions): Prom
       await qbt.setShareLimits(hash, { ratioLimit: -1, seedingTimeLimit: -1 }, signal);
       if (!ownedTorrent.sequential) await qbt.setSequential(hash, signal);
       if (!ownedTorrent.firstLastPiecePrio) await qbt.setFirstLastPiecePriority(hash, signal);
+      const stopped = /^(paused|stopped)/.test(ownedTorrent.state);
+      // Start it before selecting a file: a magnet only fetches its metadata
+      // (and therefore its file list) while running. A pack briefly downloads
+      // unwanted files until the priorities below take effect.
+      let started = false;
+      if (stopped && ownedTorrent.progress < 1) { await qbt.setRunning(hash, true, signal); started = true; }
       let files = await qbt.files(hash, signal);
       if (!files.length) files = await waitFor(async () => {
         const next = await qbt.files(hash, signal); return next.length ? next : undefined;
@@ -117,11 +123,16 @@ async function prepareDownload(target: PlayTarget, options: EnsureOptions): Prom
       const wanted = new Set(selected.map(f => f.index));
       await qbt.setFilePriorities(hash, files.filter(f => !wanted.has(f.index) && f.priority > 0).map(f => f.index), 0, signal);
       await qbt.setFilePriorities(hash, files.filter(f => wanted.has(f.index) && f.priority === 0).map(f => f.index), 1, signal);
-      if (/^(paused|stopped)/.test(ownedTorrent.state) && file.progress < 1) await qbt.setRunning(hash, true, signal);
+      // A torrent that was complete overall but stopped (re-watch) still needs
+      // starting when a newly requested file in the same pack is incomplete.
+      if (!started && stopped && file.progress < 1) await qbt.setRunning(hash, true, signal);
       const state = { record, torrent: ownedTorrent, file };
       options.onReady?.(state); // Reserve playback before releasing the hash lock.
       return state;
     } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      const detail = typeof code === 'string' ? code : error instanceof Error ? error.message : String(error);
+      console.warn(`Debridarr preparation failed for ${hash.slice(0, 8)} (${target.title}): ${detail}`);
       const current = store.get(hash)!;
       await store.upsert({ ...current, lifecycle: error instanceof DownloadError && error.code === 'no_file' && !current.selectedFiles?.length ? 'failed' : current.lifecycle ?? 'registering', failure: error instanceof DownloadError ? error.code : 'preparation_failed' });
       throw error;
