@@ -160,3 +160,21 @@ test('addTorrentFile uploads the raw bytes as multipart form data', async t => {
   assert.ok(body.includes('debridarr'));
   assert.ok(body.includes(bytes.toString('latin1')), 'the uploaded bytes are present in the body');
 });
+
+test('files() returns [] when qBittorrent has no metadata yet (404 / non-array)', async t => {
+  let mode: 'missing' | 'notjson' | 'ok' = 'missing';
+  const base = await listen(createServer((request, response) => {
+    const path = new URL(request.url!, 'http://x').pathname;
+    if (path === '/api/v2/auth/login') { response.setHeader('Set-Cookie', 'SID=s; Path=/'); response.end('Ok.'); return; }
+    if (mode === 'missing') { response.statusCode = 404; response.end('Not found'); return; }
+    if (mode === 'notjson') { response.end('<html>nope</html>'); return; }
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify([{ index: 0, name: 'a.mkv', size: 1, progress: 0, priority: 1 }]));
+  }), t);
+  const qbt = new QBittorrentClient({ url: base, username: 'u', password: 'p' });
+  assert.deepEqual(await qbt.files('a'.repeat(40), AbortSignal.timeout(2000)), []);
+  mode = 'notjson';
+  assert.deepEqual(await qbt.files('a'.repeat(40), AbortSignal.timeout(2000)), []);
+  mode = 'ok';
+  assert.equal((await qbt.files('a'.repeat(40), AbortSignal.timeout(2000))).length, 1);
+});

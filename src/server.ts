@@ -136,10 +136,18 @@ export function createApp(deps?: { config: Config; store: SettingsStore; downloa
   return createServer((request, response) => {
     void handle(request, response).catch((error: unknown) => {
       if (response.headersSent) { response.destroy(); return; }
+      const expected = error instanceof HttpError || error instanceof BusyError || error instanceof ConflictError
+        || error instanceof SettingsValidationError || error instanceof SettingsStorageError;
       const status = error instanceof HttpError || error instanceof BusyError || error instanceof ConflictError ? error.status : error instanceof SettingsValidationError ? 400 : 500;
       if (error instanceof BusyError) response.setHeader('Retry-After', '15');
-      const message = error instanceof HttpError || error instanceof BusyError || error instanceof ConflictError || error instanceof SettingsValidationError || error instanceof SettingsStorageError
-        ? error.message : 'An internal error occurred';
+      if (!expected) {
+        // Unexpected failures answer with a generic message; log enough to place them.
+        const e = error as Partial<Error> & { code?: unknown };
+        const trace = (e.stack ?? '').split('\n').slice(1, 4).map(line => line.trim()).join(' <- ');
+        const url = request.url ? new URL(request.url, 'http://x').pathname : '?';
+        console.error(`Debridarr ${request.method} ${url} failed: ${typeof e.code === 'string' ? `${e.code} ` : ''}${e.name ?? 'Error'}: ${e.message ?? String(error)}${trace ? ` | ${trace}` : ''}`);
+      }
+      const message = expected ? (error as Error).message : 'An internal error occurred';
       json(response, status, { error: message });
     });
   });
