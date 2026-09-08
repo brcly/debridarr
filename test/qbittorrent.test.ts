@@ -97,6 +97,44 @@ test('an unconfigured client reports not_configured without a network call', asy
   assert.equal(result.code, 'not_configured');
 });
 
+test('qBittorrent 5.1+ IP-subnet auth bypass (204, no cookie) is accepted and reused', async t => {
+  const paths: string[] = [];
+  let sawCookie = false;
+  const server = createServer((request, response) => {
+    void (async () => {
+      const path = new URL(request.url!, 'http://x').pathname;
+      paths.push(path);
+      if (request.headers.cookie) sawCookie = true;
+      if (path === '/api/v2/auth/login') { response.statusCode = 204; response.end(); return; }
+      if (path === '/api/v2/app/version') { response.end('v5.2.3'); return; }
+      if (path === '/api/v2/torrents/info') { response.setHeader('Content-Type', 'application/json'); response.end('[]'); return; }
+      response.end('Ok.');
+    })().catch(() => { response.statusCode = 500; response.end('e'); });
+  });
+  const base = await listen(server, t);
+  const qbt = new QBittorrentClient({ url: base, username: 'ignored', password: 'ignored' });
+
+  const result = await qbt.test();
+  assert.equal(result.ok, true);
+  assert.equal(result.version, 'v5.2.3');
+  assert.equal(await qbt.torrent('a'.repeat(40), AbortSignal.timeout(2000)), undefined);
+
+  assert.equal(paths.filter(p => p === '/api/v2/auth/login').length, 1, 'logs in once, then reuses the bypass');
+  assert.equal(sawCookie, false, 'no session cookie is sent in bypass mode');
+});
+
+test('qBittorrent login: an empty 200 body is bypass; any other non-Ok/non-Fails body is unexpected', async t => {
+  let loginBody = '';
+  const base = await listen(createServer((request, response) => {
+    const path = new URL(request.url!, 'http://x').pathname;
+    if (path === '/api/v2/auth/login') { response.end(loginBody); return; }
+    response.end('v5.0.4');
+  }), t);
+  assert.equal((await new QBittorrentClient({ url: base, username: 'u', password: 'p' }).test()).ok, true);
+  loginBody = 'Access denied by policy';
+  assert.equal((await new QBittorrentClient({ url: base, username: 'u', password: 'p' }).test()).code, 'unexpected_response');
+});
+
 test('addTorrentFile uploads the raw bytes as multipart form data', async t => {
   const chunks: Buffer[] = [];
   let contentType = '';
