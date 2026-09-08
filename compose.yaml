@@ -1,0 +1,29 @@
+services:
+  debridarr:
+    build: .
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${PORT:-7000}:${PORT:-7000}"
+    environment:
+      PORT: ${PORT:-7000}
+      APP_URL: ${APP_URL:-http://localhost:7000}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      DATA_DIR: /app/data
+      PROWLARR_URL: ${PROWLARR_URL:-}
+      PROWLARR_API_KEY: ${PROWLARR_API_KEY:-}
+      QBITTORRENT_URL: ${QBITTORRENT_URL:-}
+      QBITTORRENT_USERNAME: ${QBITTORRENT_USERNAME:-}
+      QBITTORRENT_PASSWORD: ${QBITTORRENT_PASSWORD:-}
+      METADATA_PROVIDER: ${METADATA_PROVIDER:-cinemeta}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      DOWNLOAD_DIR: ${DOWNLOAD_DIR:-/downloads}
+    volumes:
+      - debridarr-data:/app/data
+      # Required for playback: mount qBittorrent's completed-downloads directory.
+      # Mount it at the SAME path qBittorrent uses, or set DOWNLOAD_DIR to where
+      # it lands here. Read-only is enough.
+      # - /path/to/qbittorrent/downloads:/downloads:ro
+
+volumes:
+  debridarr-data:

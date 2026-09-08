@@ -1,0 +1,49 @@
+# debridarr — OMV 8, using the same shared folders and bridge as the arr stack.
+# Pull the image published by the GitHub Actions workflow; see the README.
+# Prepare appdata/debridarr/config as appuser:users before starting.
+# ADMIN_PASSWORD belongs in this stack's Environment tab.
+
+services:
+  debridarr:
+    image: ${DEBRIDARR_IMAGE:?Set the published GHCR image in the OMV Environment tab}
+    pull_policy: always
+    init: true
+    container_name: debridarr
+    hostname: debridarr
+    # This image uses Docker's user setting, not PUID/PGID environment variables.
+    user: '${{ uid:"appuser" }}:${{ gid:"users" }}'
+    networks:
+      default:
+      internal_bridge:
+    environment:
+      TZ: ${{ tz }}
+      PORT: "7000"
+      APP_URL: ${APP_URL:?Set the URL used to open Debridarr}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in the OMV Environment tab}
+      DATA_DIR: /app/data
+      DOWNLOAD_DIR: /data/torrents
+      # First-start defaults; enter credentials in the configuration site.
+      PROWLARR_URL: http://gluetun:9696
+      QBITTORRENT_URL: http://gluetun:8080
+    ports:
+      # Optional LAN access. NGINX Proxy Manager reaches debridarr:7000 directly.
+      - "10.0.0.10:${DEBRIDARR_PORT:-7000}:7000"
+    volumes:
+      - type: bind
+        source: ${{ sf:"appdata" }}/debridarr/config
+        target: /app/data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${{ sf:"data" }}/torrents
+        target: /data/torrents
+        read_only: true
+        bind:
+          create_host_path: false
+    restart: unless-stopped
+
+networks:
+  default:
+  # Already shared by gluetun and nginx-proxy-manager in your existing stacks.
+  internal_bridge:
+    external: true

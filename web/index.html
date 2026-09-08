@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Debridarr · Configuration</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="/configure"><span class="brand-mark" aria-hidden="true">d.</span> Debridarr</a>
+    <div class="header-actions"><span class="tag">SELF-HOSTED</span><button id="logout" class="quiet" hidden>Sign out</button></div>
+  </header>
+  <main>
+    <p id="loading" role="status">Loading your workspace…</p>
+    <section id="login-panel" class="login card" hidden>
+      <p class="eyebrow">YOUR SERVER. YOUR STREAMS.</p>
+      <h1>Welcome back.</h1>
+      <p class="muted">Sign in to connect your services and manage Debridarr.</p>
+      <form id="login-form">
+        <label for="admin-password">Administrator password</label>
+        <input id="admin-password" type="password" autocomplete="current-password" required>
+        <p id="login-error" class="error" role="alert"></p>
+        <button id="login-button" class="primary" type="submit">Sign in</button>
+      </form>
+      <p class="help">Use the administrator password set in your Docker environment.</p>
+    </section>
+
+    <div id="workspace" hidden>
+      <section class="intro">
+        <div><p class="eyebrow">ADMINISTRATION</p><h1 id="page-title">Dashboard</h1><p class="muted" id="page-subtitle">Downloads, retention, and search preferences.</p></div>
+      </section>
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab-link" id="tab-btn-main" role="tab" aria-selected="true" aria-controls="tab-main">Dashboard</button>
+        <button type="button" class="tab-link" id="tab-btn-library" role="tab" aria-selected="false" aria-controls="tab-library">Library</button>
+        <button type="button" class="tab-link" id="tab-btn-connections" role="tab" aria-selected="false" aria-controls="tab-connections">Connections</button>
+      </nav>
+      <form id="settings-form">
+        <div class="save-bar"><div><strong id="save-state">All changes saved</strong><p class="help">Saved settings apply immediately and survive container replacement.</p></div><button id="save" type="submit" class="primary" disabled>Save settings <span aria-hidden="true">↗</span></button></div>
+        <p id="feedback" role="status"></p>
+
+        <div id="tab-main" role="tabpanel" aria-labelledby="tab-btn-main">
+          <section class="card downloads">
+            <div class="card-heading"><span class="service-mark purple">D</span><div><h2>Downloads</h2><p class="muted">Titles currently cached by Debridarr.</p></div></div>
+            <div class="downloads-toolbar"><button type="button" id="downloads-refresh" class="secondary">Refresh</button></div>
+            <div id="downloads-list"></div>
+            <p id="downloads-feedback" class="help" role="status"></p>
+          </section>
+          <section class="card install">
+            <div><p class="eyebrow">ONE MORE CONNECTION</p><h2>Add Debridarr to Stremio</h2><p class="muted">Install the addon, then open a movie or episode — ranked streams from your indexers appear once Prowlarr is connected on the Connections tab.</p></div>
+            <label for="manifest-url">Private addon manifest URL</label>
+            <p>Keep this link private. Anyone with it can search, download and play content on this server.</p>
+            <button id="rotate-addon" class="secondary" type="button">Replace installation link</button>
+            <div class="install-url"><input id="manifest-url" readonly><button id="copy-url" class="secondary">Copy URL</button><a id="install-addon" class="button primary" href="#">Install addon ↗</a></div>
+            <p id="copy-status" class="help" role="status"></p>
+          </section>
+        </div>
+
+        <div id="tab-library" role="tabpanel" aria-labelledby="tab-btn-library" hidden>
+          <fieldset id="settings-fields-library">
+            <section class="card retention">
+              <div class="card-heading"><span class="service-mark purple">R</span><div><h2>Retention</h2><p class="muted">How long a downloaded title stays cached before it's deleted.</p></div></div>
+              <label for="retention-days">Lease length</label>
+              <select id="retention-days">
+                <option value="30">30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="custom">Custom</option>
+              </select>
+              <div id="retention-days-custom-field" hidden>
+                <label class="secret-label" for="retention-days-custom">Custom lease (days)</label>
+                <input id="retention-days-custom" type="number" min="1" max="3650" step="1">
+              </div>
+              <label for="retention-target-ratio">Target seed ratio</label>
+              <input id="retention-target-ratio" type="number" min="0.1" max="100" step="0.1">
+              <label for="retention-grace-days">Grace period (days)</label>
+              <input id="retention-grace-days" type="number" min="0" max="3650" step="1">
+              <p class="help">Delete anyway after this many extra days if the ratio target is never reached. 0 = never force it.</p>
+              <label class="checkbox-row" for="retention-extend-on-play"><input id="retention-extend-on-play" type="checkbox"><span>Renew the lease whenever a title is played</span></label>
+              <label for="retention-max-cache-gb">Cache cap (GB)</label>
+              <input id="retention-max-cache-gb" type="number" min="0" step="1">
+              <p class="help">0 = unlimited. Over the cap, the soonest-to-expire titles that aren't Kept are evicted first.</p>
+            </section>
+            <section class="card preferences">
+              <div class="card-heading"><span class="service-mark green">Q</span><div><h2>Preferences</h2><p class="muted">Language and quality filtering for search results. Pick as many as you like — anything unchecked here is never shown.</p></div></div>
+              <label>Preferred resolutions</label>
+              <p class="help">None checked = any resolution. A release with no readable resolution always shows.</p>
+              <div class="checkbox-group checkbox-group-compact" role="group" aria-label="Preferred resolutions">
+                <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="2160"><span>2160p (4K)</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="1080"><span>1080p</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="720"><span>720p</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="480"><span>480p</span></label>
+              </div>
+              <label>Preferred codecs</label>
+              <p class="help">None checked = any codec. A release with no readable codec always shows. x265/HEVC encodes to a smaller file at the same quality than x264.</p>
+              <div class="checkbox-group checkbox-group-compact" role="group" aria-label="Preferred codecs">
+                <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="x265"><span>x265 / HEVC</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="x264"><span>x264 / AVC</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="av1"><span>AV1</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="xvid"><span>Xvid</span></label>
+              </div>
+              <label>Preferred languages</label>
+              <p class="help">None checked = any language. An untagged or multi-language (MULTI/DUAL) release always shows.</p>
+              <div class="checkbox-group" role="group" aria-label="Preferred languages">
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="en"><span>English</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="it"><span>Italian</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="fr"><span>French</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="de"><span>German</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="es"><span>Spanish</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ru"><span>Russian</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ko"><span>Korean</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ja"><span>Japanese</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="hi"><span>Hindi</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="pt"><span>Portuguese</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="pl"><span>Polish</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="nl"><span>Dutch</span></label>
+                <label class="checkbox-row"><input type="checkbox" name="pref-language" value="sv"><span>Swedish</span></label>
+              </div>
+            </section>
+          </fieldset>
+        </div>
+
+        <div id="tab-connections" role="tabpanel" aria-labelledby="tab-btn-connections" hidden>
+          <fieldset id="settings-fields-connections">
+            <div class="service-grid">
+              <section class="card service">
+                <div class="card-heading"><span class="service-mark">P</span><div><h2>Prowlarr</h2><p class="muted">Find releases across your indexers.</p></div></div>
+                <label for="prowlarr-url">Server URL</label>
+                <input id="prowlarr-url" type="url" placeholder="http://prowlarr:9696" autocomplete="off">
+                <p class="help">Use an address reachable from Debridarr, including any URL base path.</p>
+                <label for="prowlarr-secret-action">API key</label>
+                <select id="prowlarr-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new key</option><option value="clear">Clear saved key</option></select>
+                <label class="secret-label" for="prowlarr-secret">New API key</label>
+                <input id="prowlarr-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new key” to enter a key">
+                <div class="test-row"><button type="button" id="test-prowlarr" class="secondary">Test connection</button><span class="test-label">Does not save changes</span></div>
+                <p id="prowlarr-status" class="connection-status" role="status">Not tested in this session.</p>
+              </section>
+              <section class="card service">
+                <div class="card-heading"><span class="service-mark blue">qB</span><div><h2>qBittorrent</h2><p class="muted">Download the releases you select.</p></div></div>
+                <label for="qbittorrent-url">Server URL</label>
+                <input id="qbittorrent-url" type="url" placeholder="http://qbittorrent:8080" autocomplete="off">
+                <label for="qbittorrent-username">Username</label>
+                <input id="qbittorrent-username" type="text" autocomplete="off" placeholder="admin">
+                <label for="qbittorrent-secret-action">Password</label>
+                <select id="qbittorrent-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new password</option><option value="clear">Clear saved password</option></select>
+                <label class="secret-label" for="qbittorrent-secret">New password</label>
+                <input id="qbittorrent-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new password” to enter a password">
+                <div class="test-row"><button type="button" id="test-qbittorrent" class="secondary">Test connection</button><span class="test-label">Does not save changes</span></div>
+                <p id="qbittorrent-status" class="connection-status" role="status">Not tested in this session.</p>
+              </section>
+            </div>
+            <section class="card metadata">
+              <div class="card-heading"><span class="service-mark green">M</span><div><h2>Metadata</h2><p class="muted">Turns Stremio IDs into titles and years for searching.</p></div></div>
+              <label for="metadata-provider">Provider</label>
+              <select id="metadata-provider">
+                <option value="cinemeta">Cinemeta — no key, uses Stremio's catalogue</option>
+                <option value="tmdb">TMDB — richer data, needs an API key</option>
+              </select>
+              <div id="tmdb-fields" hidden>
+                <label for="metadata-secret-action">TMDB API key</label>
+                <select id="metadata-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new key</option><option value="clear">Clear saved key</option></select>
+                <label class="secret-label" for="metadata-secret">New TMDB API key</label>
+                <input id="metadata-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new key” to enter a key">
+                <p class="help">Create a v3 API key in your TMDB account settings.</p>
+              </div>
+            </section>
+          </fieldset>
+        </div>
+      </form>
+      <footer><span>Debridarr · Built for your own infrastructure.</span><span id="deployment"></span></footer>
+    </div>
+    <noscript><p>Enable JavaScript to use the configuration site.</p></noscript>
+  </main>
+</body>
+</html>

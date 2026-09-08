@@ -1,0 +1,28 @@
+{
+  "name": "debridarr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted Stremio addon backed by Prowlarr and qBittorrent",
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "npm run build && node --env-file-if-exists=.env scripts/dev.mjs",
+    "build": "tsc -p tsconfig.build.json && npm run build:web",
+    "build:web": "tsc -p tsconfig.web.json && node scripts/build-web.mjs",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:e2e": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
