@@ -1,0 +1,27 @@
+# OMV Compose plugin example. Replace shared-folder/user names for your server.
+services:
+  debridarr:
+    image: ${DEBRIDARR_IMAGE:-ghcr.io/brcly/debridarr:latest}
+    init: true
+    user: '${{ uid:"appuser" }}:${{ gid:"users" }}'
+    environment:
+      PORT: "7000"
+      APP_URL: ${APP_URL:?Set the URL used by your browser and Stremio}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set an administrator password}
+      DATA_DIR: /app/data
+      DOWNLOAD_DIR: /data/torrents
+    ports:
+      - "${PORT:-7000}:7000"
+    volumes:
+      - type: bind
+        source: ${{ sf:"appdata" }}/debridarr/config
+        target: /app/data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${{ sf:"data" }}/torrents
+        target: /data/torrents
+        read_only: true
+        bind:
+          create_host_path: false
+    restart: unless-stopped

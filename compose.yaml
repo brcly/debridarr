@@ -1,0 +1,24 @@
+services:
+  debridarr:
+    image: ${DEBRIDARR_IMAGE:-ghcr.io/brcly/debridarr:latest}
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${PORT:-7000}:7000"
+    environment:
+      PORT: "7000"
+      APP_URL: ${APP_URL:?Set APP_URL in .env to the address used by your browser and Stremio}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      DATA_DIR: /app/data
+      DOWNLOAD_DIR: ${DOWNLOAD_DIR:-/downloads}
+    volumes:
+      - debridarr-data:/app/data
+      - type: bind
+        source: ${QBITTORRENT_DOWNLOADS_DIR:?Set QBITTORRENT_DOWNLOADS_DIR to the host download folder}
+        target: ${DOWNLOAD_DIR:-/downloads}
+        read_only: true
+        bind:
+          create_host_path: false
+
+volumes:
+  debridarr-data:

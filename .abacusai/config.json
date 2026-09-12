@@ -1,0 +1,13 @@
+{
+  "permissionMode": "YOLO",
+  "notifications": "sound",
+  "autoLoadAgentsMd": true,
+  "permissions": {
+    "strictness": "relaxed",
+    "allow": [
+      "Read",
+      "Edit",
+      "Write"
+    ]
+  }
+}
