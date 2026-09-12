@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible problem with Debridarr.
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include service credentials, private addon/playback URLs, .env files, or state backups. Use SECURITY.md for vulnerability reports."
+  - type: input
+    id: version
+    attributes:
+      label: Debridarr version or image tag
+    validations:
+      required: true
+  - type: textarea
+    id: deployment
+    attributes:
+      label: Deployment
+      description: "Operating mode, Docker/host platform, qBittorrent version, and relevant mount layout. Use generic paths and addresses."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected result, and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics and redacted logs
+      description: "Include relevant Playback readiness results. Do not upload private configuration or media."

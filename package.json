@@ -1,0 +1,50 @@
+{
+  "name": "debridarr",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Self-hosted debrid backend and Stremio addon backed by qBittorrent",
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brcly/debridarr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brcly/debridarr/issues"
+  },
+  "homepage": "https://github.com/brcly/debridarr#readme",
+  "keywords": [
+    "debrid",
+    "stremio",
+    "qbittorrent",
+    "prowlarr",
+    "self-hosted"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "npm run build && node --env-file-if-exists=.env scripts/dev.mjs",
+    "build": "tsc -p tsconfig.build.json && npm run build:web",
+    "build:web": "tsc -p tsconfig.web.json && node scripts/build-web.mjs",
+    "check:release": "node scripts/check-release.mjs",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage --test-coverage-exclude='test/**' --test-coverage-lines=95 --test-coverage-branches=84 --test-coverage-functions=92 test/*.test.ts",
+    "test:e2e": "npm run build && playwright test",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.13.3",
+    "oxlint": "1.82.0",
+    "stremthru": "0.13.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

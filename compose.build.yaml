@@ -1,0 +1,5 @@
+# Optional source build: docker compose -f compose.yaml -f compose.build.yaml up -d --build
+services:
+  debridarr:
+    image: debridarr:local
+    build: .

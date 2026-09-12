@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Correctness only. Style is settled by review, not by a linter: this
+  // codebase deliberately uses sequential awaits, compact single-line guards,
+  // and shadowed narrow names, so the style/perf/pedantic categories are off.
+  "plugins": ["eslint", "typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "perf": "off",
+    "pedantic": "off",
+    "style": "off",
+    "suspicious": "off",
+    "restriction": "off"
+  },
+  "env": { "es2024": true, "node": true },
+  "ignorePatterns": ["dist/**", "node_modules/**", "data/**", "test-results/**", "playwright-report/**"],
+  "rules": {
+    "eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrors": "none" }],
+    // Control characters in these patterns are the point: torrent and settings
+    // input is stripped of them deliberately (src/security/text.ts).
+    "eslint/no-control-regex": "off",
+    "eslint/no-unsafe-optional-chaining": "error",
+    "eslint/preserve-caught-error": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/prefer-string-starts-ends-with": "error"
+  },
+  "overrides": [
+    {
+      "files": ["web/**/*.ts"],
+      "env": { "browser": true }
+    }
+  ]
+}

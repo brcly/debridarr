@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Debridarr · Configuration</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <template id="preference-fields-template">
+    <div class="preference-group"><h3>Preferred resolutions</h3>
+    <p class="help">None checked = any resolution. A release with no readable resolution always shows.</p>
+    <div class="checkbox-group checkbox-group-compact" role="group" aria-label="Preferred resolutions">
+      <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="2160"><span>2160p (4K)</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="1080"><span>1080p</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="720"><span>720p</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-resolution" value="480"><span>480p</span></label>
+    </div>
+    </div><div class="preference-group"><h3>Preferred codecs</h3>
+    <p class="help">None checked = any codec. A release with no readable codec always shows. x265/HEVC encodes to a smaller file at the same quality than x264.</p>
+    <div class="checkbox-group checkbox-group-compact" role="group" aria-label="Preferred codecs">
+      <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="x265"><span>x265 / HEVC</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="x264"><span>x264 / AVC</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="av1"><span>AV1</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-codec" value="xvid"><span>Xvid</span></label>
+    </div>
+    </div><div class="preference-group"><h3>Preferred languages</h3>
+    <p class="help">None checked = any language. An untagged or multi-language (MULTI/DUAL) release always shows.</p>
+    <div class="checkbox-group" role="group" aria-label="Preferred languages">
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="en"><span>English</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="it"><span>Italian</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="fr"><span>French</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="de"><span>German</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="es"><span>Spanish</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ru"><span>Russian</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ko"><span>Korean</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="ja"><span>Japanese</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="hi"><span>Hindi</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="pt"><span>Portuguese</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="pl"><span>Polish</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="nl"><span>Dutch</span></label>
+      <label class="checkbox-row"><input type="checkbox" name="pref-language" value="sv"><span>Swedish</span></label>
+    </div></div>
+  </template>
+  <header class="header">
+    <a class="brand" href="/configure"><span class="brand-mark" aria-hidden="true">d.</span> Debridarr</a>
+    <div class="header-actions"><span class="tag">SELF-HOSTED</span><button id="logout" class="quiet" hidden>Sign out</button></div>
+  </header>
+  <main>
+    <p id="loading" role="status">Loading your workspace…</p>
+    <section id="login-panel" class="login card" hidden>
+      <p class="eyebrow">YOUR SERVER. YOUR STREAMS.</p>
+      <h1>Welcome back.</h1>
+      <p class="muted">Sign in to connect your services and manage Debridarr.</p>
+      <form id="login-form">
+        <label for="admin-password">Administrator password</label>
+        <input id="admin-password" type="password" autocomplete="current-password" required>
+        <p id="login-error" class="error" role="alert"></p>
+        <button id="login-button" class="primary" type="submit">Sign in</button>
+      </form>
+      <p class="help">Use the administrator password set in your Docker environment.</p>
+    </section>
+
+    <section id="setup-panel" class="setup" hidden aria-labelledby="setup-title">
+      <div class="intro">
+        <p class="eyebrow">LET'S GET YOU CONNECTED</p>
+        <h1 id="setup-title" tabindex="-1">Set up Debridarr</h1>
+        <p class="muted">A few connections, then you're ready to add something to watch.</p>
+      </div>
+      <ol id="setup-progress" class="setup-progress" aria-label="Setup progress"></ol>
+      <form id="setup-form" novalidate>
+        <fieldset id="setup-fields" class="card">
+          <div id="setup-step-mode" class="setup-step">
+            <h2>How will you use Debridarr?</h2>
+            <p class="muted">Choose a starting point. You can change this at any time.</p>
+            <div class="mode-options">
+              <label class="mode-option"><input type="radio" name="setup-mode" value="search" checked><span><strong>Search</strong><span>Find movies and shows in Stremio using your indexers.</span></span></label>
+              <label class="mode-option"><input type="radio" name="setup-mode" value="store"><span><strong>Store</strong><span>Add torrents yourself or connect another addon. No indexers needed.</span></span></label>
+              <label class="mode-option"><input type="radio" name="setup-mode" value="both"><span><strong>Both</strong><span>Search across your indexers and add torrents manually or from other addons.</span></span></label>
+            </div>
+          </div>
+          <div id="setup-step-downloadBackend" class="setup-step" hidden>
+            <h2 id="setup-backend-title">Connect your download client</h2>
+            <p id="setup-backend-description" class="muted"></p>
+            <label for="setup-downloadBackend-type">Download client</label>
+            <select id="setup-downloadBackend-type"></select>
+            <div id="setup-backend-url-field"><label id="setup-backend-url-label" for="setup-downloadBackend-url">Server URL</label>
+            <input id="setup-downloadBackend-url" type="url" autocomplete="off" required aria-describedby="setup-backend-url-help">
+            <p class="help" id="setup-backend-url-help">Use an address reachable from Debridarr, such as a container name or server IP. localhost points to Debridarr's own container.</p></div>
+            <div class="form-grid">
+              <div id="setup-backend-username-field"><label id="setup-backend-username-label" for="setup-downloadBackend-username">Username</label><input id="setup-downloadBackend-username" autocomplete="off" required></div>
+              <div id="setup-backend-password-field"><label id="setup-backend-password-label" for="setup-downloadBackend-password">Password</label><input id="setup-downloadBackend-password" type="password" autocomplete="new-password" aria-describedby="setup-backend-password-help"><p id="setup-backend-password-help" class="help"></p></div>
+            </div>
+            <label for="setup-downloadBackend-path-mappings">Path mappings</label>
+            <textarea id="setup-downloadBackend-path-mappings" rows="3" placeholder="/remote/downloads => /downloads"></textarea>
+            <p class="help">Optional. Use one mapping per line if the download client and Debridarr mount files at different paths.</p>
+            <div class="form-actions"><button id="setup-test-downloadBackend" type="button" class="secondary">Test connection</button></div>
+            <p id="setup-downloadBackend-status" class="help" role="status"></p>
+          </div>
+          <div id="setup-step-discovery" class="setup-step" hidden>
+            <h2>Connect discovery providers</h2>
+            <p class="muted">Search through Prowlarr or connect Torznab indexers directly. Add as many as you like — results from every provider are combined, and each can have its own quality, codec, and language preferences.</p>
+            <div id="setup-discovery-provider-list" class="discovery-provider-list"></div>
+            <p id="setup-discovery-provider-empty" class="help">No providers added yet. Add one below, or skip and configure one later in Connections.</p>
+            <div class="form-actions"><button type="button" id="setup-add-discovery-provider" class="secondary">Add provider</button><button id="setup-skip-discovery" type="button" class="quiet">Skip — add a provider later in Connections</button></div>
+          </div>
+          <div id="setup-step-retention" class="setup-step" hidden>
+            <h2>Choose your cache policy</h2>
+            <p class="muted">Playing a title renews its timer. Kept titles and active playback are protected from automatic deletion.</p>
+            <div class="form-grid">
+              <div><label for="setup-search-days">Search cache days</label><input id="setup-search-days" type="number" min="1" max="3650" required></div>
+              <div><label for="setup-store-days">Store cache days</label><input id="setup-store-days" type="number" min="1" max="3650" required></div>
+            </div>
+            <label for="setup-grace-days">Maximum extra seeding days after expiry</label>
+            <input id="setup-grace-days" type="number" min="0" max="3650" required>
+            <p class="help">Debridarr waits for your seed-ratio target before deleting. A finite grace period allows deletion afterward even if the target is unmet. 0 means wait indefinitely. Choose a policy appropriate for your trackers.</p>
+            <label for="setup-min-free-gb">Minimum free space (GB)</label>
+            <input id="setup-min-free-gb" type="number" min="0" max="1000000" step="0.1" required>
+            <p class="help">Block new downloads and additional file selections below this limit. Uses the download client's default filesystem; 0 disables this check. Already running downloads continue.</p>
+          </div>
+          <div id="setup-step-review" class="setup-step" hidden>
+            <h2>Ready for your first download</h2>
+            <p class="muted">Your connections are saved. Check the details below before opening your dashboard.</p>
+            <dl id="setup-summary" class="setup-summary"></dl>
+            <div class="notice">
+              <h3>One thing to check in Docker</h3>
+              <p class="help">For playback, Debridarr needs access to the download client's complete and incomplete files. Mount that download folder into this container at <strong id="setup-download-dir"></strong>. An API connection alone does not make the files available.</p>
+              <p class="help">Use the same paths in both containers where possible. Folder mounts and your public address are deployment settings in Compose.</p>
+            </div>
+            <div class="form-section"><h3>Playback readiness</h3>
+              <button id="setup-check-playback" type="button" class="secondary">Check playback readiness</button>
+              <div id="setup-checks" role="status"></div>
+            </div>
+            <p id="setup-next-help" class="help"></p>
+          </div>
+          <p id="setup-feedback" class="help" role="status"></p>
+          <div class="setup-navigation">
+            <button id="setup-back" type="button" class="secondary">Back</button>
+            <button id="setup-next" type="submit" class="primary">Save and continue</button>
+          </div>
+        </fieldset>
+      </form>
+      <div class="setup-exit"><p class="help">Each step is saved as you go. You can return to this guide from the dashboard.</p><button id="setup-later" type="button" class="quiet">Go to dashboard</button></div>
+    </section>
+
+    <div id="workspace" hidden>
+      <section class="intro" id="workspace-intro">
+        <div><p class="eyebrow">ADMINISTRATION</p><h1 id="page-title">Downloads</h1><p class="muted" id="page-subtitle">Titles Debridarr is currently caching for you.</p></div>
+        <div class="intro-actions"><button id="open-settings" type="button" class="secondary">⚙ Settings</button><button id="open-setup" type="button" class="secondary">Setup guide</button></div>
+      </section>
+      <section class="card cache-torrent" id="cache-torrent-card" hidden>
+        <div class="add-bar-row">
+          <label class="visually-hidden" for="cache-source">Magnet link or infohash</label>
+          <input id="cache-source" type="text" autocomplete="off" placeholder="Paste a magnet link or 40-character infohash">
+          <input id="cache-file" type="file" accept=".torrent,application/x-bittorrent" hidden>
+          <button type="button" id="cache-file-trigger" class="secondary">Upload .torrent</button>
+          <button type="button" id="cache-add" class="primary">Add</button>
+        </div>
+        <details class="form-details" id="cache-media-options">
+          <summary>More options <span class="muted">IMDb link, type, Keep</span></summary>
+          <p class="help">Add an IMDb ID to find this download when you open that title in Stremio.</p>
+          <label for="cache-imdb">IMDb ID</label>
+          <input id="cache-imdb" type="text" inputmode="latin" autocomplete="off" placeholder="tt1234567">
+          <label for="cache-type">Type</label>
+          <select id="cache-type"><option value="movie">Movie</option><option value="series">Series</option></select>
+          <div id="cache-series-fields" class="form-grid" hidden>
+            <div>
+            <label for="cache-season">Season</label>
+            <input id="cache-season" type="number" min="0" step="1" placeholder="1">
+            </div><div><label for="cache-episode">Episode</label>
+            <input id="cache-episode" type="number" min="0" step="1" placeholder="1"></div>
+          </div>
+          <label class="checkbox-row" for="cache-keep"><input id="cache-keep" type="checkbox"><span>Keep — exempt this title from automatic expiry</span></label>
+        </details>
+        <p id="cache-feedback" class="help" role="status"></p>
+      </section>
+      <section class="card downloads">
+        <div class="card-heading heading-with-action"><span class="service-mark purple" aria-hidden="true">D</span><div><h2>Downloads</h2><p class="muted">Your cached titles and downloads in progress.</p></div><button type="button" id="downloads-refresh" class="secondary">Refresh</button></div>
+        <div id="downloads-list"></div>
+        <p id="downloads-feedback" class="help" role="status"></p>
+      </section>
+      <footer><span>Debridarr · Built for your own infrastructure.</span><span id="deployment"></span></footer>
+    </div>
+
+    <dialog id="download-files-dialog" aria-labelledby="download-files-title">
+      <div class="dialog-header"><h2 id="download-files-title">Torrent files</h2><button id="download-files-close" type="button" class="quiet dialog-close" aria-label="Close">✕</button></div>
+      <div class="dialog-body">
+        <p class="help">Select additional videos to download. Existing selections stay active. Signed playback links expire after 24 hours; Stremio remints them when you reopen a title. "Copy permalink" gives a stable link per file instead — it works while you stay signed in and always redirects to a fresh 24-hour link when opened.</p>
+        <div id="download-files-list"></div><p id="download-files-feedback" role="status" class="help"></p>
+      </div>
+    </dialog>
+
+    <dialog id="settings-dialog" aria-labelledby="settings-dialog-title">
+      <div class="dialog-header"><h2 id="settings-dialog-title">Settings</h2><button id="settings-close" type="button" class="quiet dialog-close" aria-label="Close settings">✕</button></div>
+      <nav class="tabs" id="settings-tabs" role="tablist" aria-label="Settings">
+        <button type="button" class="tab-link" id="tab-btn-connections" role="tab" aria-selected="true" aria-controls="tab-connections" tabindex="0">Connections</button>
+        <button type="button" class="tab-link" id="tab-btn-library" role="tab" aria-selected="false" aria-controls="tab-library" tabindex="-1">Library</button>
+        <button type="button" class="tab-link" id="tab-btn-access" role="tab" aria-selected="false" aria-controls="tab-access" tabindex="-1">Access</button>
+      </nav>
+      <form id="settings-form">
+        <div class="dialog-body">
+        <p id="feedback" role="status"></p>
+
+        <div id="tab-access" class="section-stack" role="tabpanel" aria-labelledby="tab-btn-access" hidden>
+          <section class="card" id="readiness-card">
+            <h2>Playback and storage</h2>
+            <p class="help">Check your service connection, shared files, and available download space.</p>
+            <button id="check-playback" type="button" class="secondary">Check playback readiness</button>
+            <div id="dashboard-checks" role="status"></div>
+          </section>
+          <section class="card" id="store-tokens-card" hidden>
+            <div class="card-heading"><span class="service-mark blue" aria-hidden="true">↗</span><div><h2>API tokens</h2><p class="muted">Give an addon or script access to your library. Choose what each token may do.</p></div></div>
+            <label for="store-token-name">Token name</label>
+            <input id="store-token-name" maxlength="100" autocomplete="off" placeholder="AIOStreams">
+            <fieldset class="form-section"><legend>Access</legend>
+            <div class="checkbox-group checkbox-group-compact">
+              <label class="checkbox-row"><input type="checkbox" name="store-token-scope" value="read" checked><span>Read — list and inspect</span></label>
+              <label class="checkbox-row"><input type="checkbox" name="store-token-scope" value="write" checked><span>Write — add, select, delete</span></label>
+              <label class="checkbox-row"><input type="checkbox" name="store-token-scope" value="link" checked><span>Link — mint playback links</span></label>
+            </div></fieldset>
+            <details class="form-details" id="store-token-limits"><summary>Request limits <span class="muted">Advanced</span></summary>
+            <p class="help">The defaults work for most clients. Give each addon its own token.</p>
+            <div class="form-grid"><div><label for="store-token-rate">Requests per minute</label>
+            <input id="store-token-rate" type="number" min="1" max="6000" step="1" value="120">
+            </div><div><label for="store-token-concurrency">Concurrent requests</label>
+            <input id="store-token-concurrency" type="number" min="1" max="32" step="1" value="4"></div></div>
+            </details>
+            <div class="form-actions"><button type="button" id="store-token-create" class="primary">Create token</button></div>
+            <div id="store-token-reveal" class="notice" hidden>
+              <label for="store-token-secret">Copy this token now — it is shown only once</label>
+              <input id="store-token-secret" readonly autocomplete="off">
+              <div class="form-actions"><button type="button" id="store-token-dismiss" class="secondary">Done copying</button></div>
+            </div>
+            <div class="form-section"><h3>Your tokens</h3><div id="store-token-list" class="token-list"></div></div>
+            <p id="store-token-feedback" class="help" role="status"></p>
+          </section>
+          <section class="card install">
+            <div><p class="eyebrow">WATCH IN STREMIO</p><h2>Add Debridarr to Stremio</h2><p class="muted">Install your private addon to browse your library and play titles on your devices.</p></div>
+            <label for="manifest-url">Private addon manifest URL</label>
+            <div class="install-url"><input id="manifest-url" readonly><button id="copy-url" type="button" class="secondary">Copy URL</button><a id="install-addon" class="button primary" href="#">Install addon ↗</a></div>
+            <p class="help">Keep this link private. Anyone with it can search and play. Do not log <code>/addon/</code> paths on your reverse proxy — they contain the installation key. Rotate the link if it leaks.</p>
+            <p id="copy-status" class="help" role="status"></p>
+            <div class="form-section action-description"><div><h3>Replace a shared or lost link</h3><p class="help">Existing Stremio installations will need the new link.</p></div><button id="rotate-addon" class="secondary" type="button">Replace installation link</button></div>
+          </section>
+        </div>
+
+        <div id="tab-library" role="tabpanel" aria-labelledby="tab-btn-library" hidden>
+          <fieldset id="settings-fields-library" class="section-stack">
+            <section class="card retention">
+              <div class="card-heading"><span class="service-mark purple">R</span><div><h2>Retention</h2><p class="muted">How long a downloaded title stays cached before it's deleted.</p></div></div>
+              <h3>How long to keep downloads</h3>
+              <div class="form-grid"><div><label for="retention-days">Lease length</label>
+              <select id="retention-days">
+                <option value="30">30 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+                <option value="custom">Custom</option>
+              </select>
+              <div id="retention-days-custom-field" hidden>
+                <label class="secret-label" for="retention-days-custom">Custom lease (days)</label>
+                <input id="retention-days-custom" type="number" min="1" max="3650" step="1">
+              </div>
+              </div><div><label for="retention-store-days">Store lease (days)</label>
+              <input id="retention-store-days" type="number" min="1" max="3650" step="1">
+              <p class="help">Applies to manually added torrents and external addons.</p>
+              </div></div>
+              <label class="checkbox-row" for="retention-extend-on-play"><input id="retention-extend-on-play" type="checkbox"><span>Renew the lease whenever a title is played</span></label>
+              <div class="form-section"><h3>Seeding before deletion</h3>
+              <div class="form-grid"><div>              <label for="retention-target-ratio">Target seed ratio</label>
+              <input id="retention-target-ratio" type="number" min="0.1" max="100" step="0.1">
+              </div><div><label for="retention-grace-days">Grace period (days)</label>
+              <input id="retention-grace-days" type="number" min="0" max="3650" step="1">
+              <p class="help">Delete anyway after this many extra days if the ratio target is never reached. 0 = never force it.</p>
+              </div></div></div>
+              <div class="form-section"><h3>Storage and download limits</h3>
+              <div class="form-grid"><div><label for="retention-max-cache-gb">Cache cap (GB)</label>
+              <input id="retention-max-cache-gb" type="number" min="0" step="1">
+              <p class="help">Shared by all downloads. 0 = unlimited; kept titles are exempt.</p><label for="retention-min-free-gb">Minimum free space (GB)</label>
+              <input id="retention-min-free-gb" type="number" min="0" max="1000000" step="0.1">
+              <p class="help">Block new additions below this limit on the download client's default filesystem. 0 = disabled. Existing downloads continue; custom save paths may use a different filesystem.</p>
+              </div><div><label for="store-max-active">Maximum active store downloads</label>
+              <input id="store-max-active" type="number" min="1" max="1000" step="1">
+              <p class="help">Limits incomplete downloads added manually or through the API.</p></div></div></div>
+            </section>
+            <section class="card playback-settings">
+              <div class="card-heading"><span class="service-mark blue">▶</span><div><h2>Playback</h2><p class="muted">Choose what Stremio receives while a selected file is still downloading.</p></div></div>
+              <label class="checkbox-row" for="playback-stream-while-downloading"><input id="playback-stream-while-downloading" type="checkbox"><span>Stream files before their download completes</span></label>
+              <p class="help experimental-warning"><strong>Experimental:</strong> partial playback can stall or fail when required torrent pieces have not arrived, the player seeks ahead, or the media container needs data from later in the file. When disabled, Debridarr plays the short downloading status clip until the selected file is complete.</p>
+            </section>
+          </fieldset>
+        </div>
+
+        <div id="tab-connections" role="tabpanel" aria-labelledby="tab-btn-connections" hidden>
+          <fieldset id="settings-fields-connections" class="section-stack">
+            <section class="card operating-mode" id="mode-card">
+              <div class="card-heading"><span class="service-mark">⚙</span><div><h2>Operating mode</h2><p class="muted">How Debridarr gets the content it caches.</p></div></div>
+              <label for="operating-mode">Mode</label>
+              <select id="operating-mode">
+                <option value="search">Search — find titles with discovery providers</option>
+                <option value="store">Store — add torrents manually or from another addon</option>
+                <option value="both">Both — search and store</option>
+              </select>
+              <p class="help">Discovery providers are optional in Store mode.</p>
+              <p id="mode-surfaces" class="help" role="status"></p>
+            </section>
+            <section class="card" id="discovery-card">
+              <div class="card-heading heading-with-action"><span class="service-mark">D</span><div><h2>Discovery providers</h2><p class="muted">Search through Prowlarr or connect Torznab indexers directly. Results from every provider are combined, and each provider can have its own quality, codec, and language preferences.</p></div><button type="button" id="add-discovery-provider" class="secondary">Add provider</button></div>
+              <div id="discovery-provider-list" class="discovery-provider-list"></div>
+              <p id="discovery-provider-empty" class="help">No providers added. Add one to enable search.</p>
+            </section>
+            <section class="card service" id="downloadBackend-card">
+              <div class="card-heading"><span class="service-mark blue">DL</span><div><h2 id="backend-name">Download client</h2><p id="backend-description" class="muted"></p></div></div>
+              <label for="downloadBackend-type">Client</label>
+              <select id="downloadBackend-type"></select>
+              <div id="backend-url-field"><label id="backend-url-label" for="downloadBackend-url">Server URL</label>
+              <input id="downloadBackend-url" type="url" autocomplete="off"></div>
+              <div id="backend-username-field"><label id="backend-username-label" for="downloadBackend-username">Username</label>
+              <input id="downloadBackend-username" type="text" autocomplete="off"></div>
+              <div id="backend-password-field"><label id="backend-password-label" for="downloadBackend-secret-action">Password</label>
+              <select id="downloadBackend-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new password</option><option value="clear">Clear saved password</option></select>
+              <label class="secret-label" for="downloadBackend-secret">New password</label>
+              <input id="downloadBackend-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new password” to enter a password"></div>
+              <label for="downloadBackend-path-mappings">Path mappings</label>
+              <textarea id="downloadBackend-path-mappings" rows="3" placeholder="/remote/downloads => /downloads"></textarea>
+              <p class="help">Optional. Add one remote path and local path per line when both containers see the same files at different locations.</p>
+              <p id="backend-protocol-note" class="help" hidden></p>
+              <div class="test-row"><button type="button" id="test-downloadBackend" class="secondary">Test connection</button><span class="test-label">Does not save changes</span></div>
+              <p id="downloadBackend-status" class="connection-status" role="status">Not tested in this session.</p>
+            </section>
+            <section class="card metadata">
+              <div class="card-heading"><span class="service-mark green">M</span><div><h2>Metadata</h2><p class="muted">Turns Stremio IDs into titles and years for searching.</p></div></div>
+              <label for="metadata-provider">Provider</label>
+              <select id="metadata-provider">
+                <option value="cinemeta">Cinemeta — no key, uses Stremio's catalogue</option>
+                <option value="tmdb">TMDB — richer data, needs an API key</option>
+              </select>
+              <div id="tmdb-fields" hidden>
+                <label for="metadata-secret-action">TMDB API key</label>
+                <select id="metadata-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new key</option><option value="clear">Clear saved key</option></select>
+                <label class="secret-label" for="metadata-secret">New TMDB API key</label>
+                <input id="metadata-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new key” to enter a key">
+                <p class="help">Create a v3 API key in your TMDB account settings.</p>
+              </div>
+            </section>
+            <section class="card" id="webhook-card">
+              <div class="card-heading"><span class="service-mark">W</span><div><h2>Webhook</h2><p class="muted">Notify an external system when a transfer becomes ready, fails, or is deleted.</p></div></div>
+              <label for="webhook-url">HTTPS URL</label>
+              <input id="webhook-url" type="url" autocomplete="off" placeholder="https://example.test/hooks/debridarr">
+              <p class="help">Posts JSON on completion, failure, and confirmed deletion. Leave blank to disable.</p>
+              <label for="webhook-secret-action">Signing secret</label>
+              <select id="webhook-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new secret</option><option value="clear">Clear saved secret</option></select>
+              <label class="secret-label" for="webhook-secret">New signing secret</label>
+              <input id="webhook-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new secret” to enter one">
+              <p class="help">Optional. When set, requests carry an <code>X-Debridarr-Signature: sha256=…</code> header — an HMAC-SHA256 of the raw body — so your listener can verify the request came from Debridarr.</p>
+            </section>
+            <section class="card" id="rss-card">
+              <div class="card-heading heading-with-action"><span class="service-mark">R</span><div><h2>Saved searches</h2><p class="muted">Poll an RSS or Torznab feed on an interval and add new matching items automatically, the same way a manual or API add would.</p></div><button type="button" id="add-saved-search" class="secondary">Add search</button></div>
+              <div id="saved-search-list" class="saved-search-list"></div>
+              <p id="saved-search-empty" class="help">No saved searches yet. Add one to poll a feed automatically.</p>
+            </section>
+          </fieldset>
+        </div>
+        </div>
+        <div class="save-bar dialog-footer" id="settings-save-bar"><div><strong id="save-state">All changes saved</strong><p class="help">Saved settings apply immediately and survive container replacement.</p></div><button id="save" type="submit" class="primary" disabled>Save settings <span aria-hidden="true">↗</span></button></div>
+      </form>
+    </dialog>
+    <noscript><p>Enable JavaScript to use the configuration site.</p></noscript>
+  </main>
+</body>
+</html>
