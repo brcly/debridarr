@@ -35,11 +35,11 @@ function renderBackendDescriptor(type: string): void {
   element('backend-description').textContent = descriptor.description;
   element('setup-backend-title').textContent = `Connect ${descriptor.label}`;
   element('setup-backend-description').textContent = descriptor.description;
-  for (const key of ['url', 'username', 'password'] as const) {
+  for (const key of ['url', 'username', 'password', 'apiKey'] as const) {
     const field = descriptor.fields.find(candidate => candidate.key === key);
     element(`backend-${key}-field`).hidden = !field;
     element(`setup-backend-${key}-field`).hidden = !field;
-    const regular = key === 'password' ? input('downloadBackend-secret') : input(`downloadBackend-${key}`);
+    const regular = key === 'password' ? input('downloadBackend-secret') : key === 'apiKey' ? input('downloadBackend-apikey-secret') : input(`downloadBackend-${key}`);
     const setup = input(`setup-downloadBackend-${key}`);
     if (!field) {
       // A hidden control must not stay required, or setup validation fails
@@ -94,6 +94,7 @@ function showLogin() {
   csrfToken = '';
   element('setup-panel').hidden = true;
   input('setup-downloadBackend-password').value = '';
+  input('setup-downloadBackend-apiKey').value = '';
   for (const id of ['discovery-provider-list', 'setup-discovery-provider-list']) {
     for (const secret of element(id).querySelectorAll<HTMLInputElement>('[data-field="apiKey"]')) secret.value = '';
   }
@@ -185,6 +186,9 @@ function draft(): Draft {
   const backendAction = element<HTMLSelectElement>('downloadBackend-secret-action').value;
   if (backendAction === 'replace') result.downloadBackend.password = input('downloadBackend-secret').value;
   if (backendAction === 'clear') result.downloadBackend.password = null;
+  const backendApiKeyAction = element<HTMLSelectElement>('downloadBackend-apikey-secret-action').value;
+  if (backendApiKeyAction === 'replace') result.downloadBackend.apiKey = input('downloadBackend-apikey-secret').value;
+  if (backendApiKeyAction === 'clear') result.downloadBackend.apiKey = null;
   if (provider === 'tmdb') {
     const action = element<HTMLSelectElement>('metadata-secret-action').value;
     if (action === 'replace') result.metadata.tmdbApiKey = input('metadata-secret').value;
@@ -204,6 +208,9 @@ function updateState(): void {
   const replace = element<HTMLSelectElement>('downloadBackend-secret-action').value === 'replace';
   input('downloadBackend-secret').disabled = !replace;
   input('downloadBackend-secret').required = replace;
+  const replaceApiKey = element<HTMLSelectElement>('downloadBackend-apikey-secret-action').value === 'replace';
+  input('downloadBackend-apikey-secret').disabled = !replaceApiKey;
+  input('downloadBackend-apikey-secret').required = replaceApiKey;
   const tmdb = element<HTMLSelectElement>('metadata-provider').value === 'tmdb';
   element('tmdb-fields').hidden = !tmdb;
   const replaceKey = tmdb && element<HTMLSelectElement>('metadata-secret-action').value === 'replace';
@@ -287,6 +294,12 @@ function render(settings: PublicSettings) {
     select.options[0]!.textContent = settings.downloadBackend.hasPassword ? 'Keep saved credential' : 'Leave unset';
     select.value = 'keep';
     input('downloadBackend-secret').value = '';
+  }
+  {
+    const select = element<HTMLSelectElement>('downloadBackend-apikey-secret-action');
+    select.options[0]!.textContent = settings.downloadBackend.hasApiKey ? 'Keep saved key' : 'Leave unset';
+    select.value = 'keep';
+    input('downloadBackend-apikey-secret').value = '';
   }
   element<HTMLSelectElement>('metadata-provider').value = settings.metadata.provider;
   const metaSelect = element<HTMLSelectElement>('metadata-secret-action');
@@ -381,6 +394,7 @@ element('logout').addEventListener('click', () => {
   void api('logout', 'POST', {}).then(() => {
     baseline = '';
     input('downloadBackend-secret').value = '';
+    input('downloadBackend-apikey-secret').value = '';
     showLogin();
   }).catch(error => message('feedback', error.message, 'error'));
 });

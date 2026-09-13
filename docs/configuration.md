@@ -27,8 +27,9 @@ must be explicitly added to its `environment` section.
 | `PROWLARR_URL` | Prowlarr HTTP(S) base URL, including any URL base path. Seeds a Prowlarr discovery provider on first run. |
 | `PROWLARR_API_KEY` | API credential for the seeded Prowlarr provider. |
 | `QBITTORRENT_URL` | qBittorrent Web UI/API HTTP(S) base URL. |
-| `QBITTORRENT_USERNAME` | qBittorrent login. |
-| `QBITTORRENT_PASSWORD` | qBittorrent password. |
+| `QBITTORRENT_USERNAME` | qBittorrent login. Not needed if `QBITTORRENT_API_KEY` is set. |
+| `QBITTORRENT_PASSWORD` | qBittorrent password. Not needed if `QBITTORRENT_API_KEY` is set. |
+| `QBITTORRENT_API_KEY` | qBittorrent ≥5.2.0 API key (Preferences → WebUI → API Key), an alternative to username/password. Takes priority when set. |
 | `METADATA_PROVIDER` | `cinemeta` (default) or `tmdb`. |
 | `TMDB_API_KEY` | TMDB v3 API key; required only when the provider is `tmdb`. |
 

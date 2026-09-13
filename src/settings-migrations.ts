@@ -2,7 +2,7 @@ import { legacyBackendId } from './backends/config.js';
 import { objectRecord } from './json.js';
 import { applySettingsPatch, emptySettings, knownResolutions, type Settings } from './settings.js';
 
-export const currentSettingsVersion = 17;
+export const currentSettingsVersion = 18;
 
 // Settings schema history, oldest first:
 //    1  prowlarr + qbittorrent
@@ -22,6 +22,7 @@ export const currentSettingsVersion = 17;
 //   15  discovery providers carry their own preferences; prowlarr/preferences sections removed
 //   16  + connections.webhookUrl / webhookSecret (completion webhook)
 //   17  + rss.searches (saved RSS/Torznab searches)
+//   18  downloadBackend carries an apiKey field (qBittorrent >=5.2.0 API key)
 // An older file is migrated in memory: missing sections fall back to their
 // defaults and the file is rewritten at the current version on the next save.
 const settingsSections = [
@@ -101,10 +102,14 @@ export function readSavedSettings(contents: string): Settings {
     };
   } else {
     downloadBackend = savedObject(saved.downloadBackend, 'settings.downloadBackend');
-    requireExactKeys(downloadBackend, version >= 14
-      ? ['id', 'type', 'protocol', 'url', 'username', 'password', 'pathMappings']
-      : ['id', 'type', 'url', 'username', 'password', 'pathMappings'], 'settings.downloadBackend');
-    requireStringFields(downloadBackend, ['id', 'type', 'url', 'username', 'password'], 'settings.downloadBackend');
+    requireExactKeys(downloadBackend, version >= 18
+      ? ['id', 'type', 'protocol', 'url', 'username', 'password', 'apiKey', 'pathMappings']
+      : version >= 14
+        ? ['id', 'type', 'protocol', 'url', 'username', 'password', 'pathMappings']
+        : ['id', 'type', 'url', 'username', 'password', 'pathMappings'], 'settings.downloadBackend');
+    requireStringFields(downloadBackend, version >= 18
+      ? ['id', 'type', 'url', 'username', 'password', 'apiKey']
+      : ['id', 'type', 'url', 'username', 'password'], 'settings.downloadBackend');
     if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(String(downloadBackend.id))) invalidSavedSettings('settings.downloadBackend.id', 'is invalid');
     // Pre-14 files predate the protocol field; every type back then was torrent.
     if (version < 14) downloadBackend = { ...downloadBackend, protocol: 'torrent' };
@@ -117,7 +122,9 @@ export function readSavedSettings(contents: string): Settings {
     retention: { minFreeSpaceGB: 0 },
     downloadBackend: (() => {
       const { id: _id, ...editable } = downloadBackend;
-      return { ...editable, password: downloadBackend.password || null };
+      // Pre-18 files never had an apiKey; `|| null` also covers that case
+      // (undefined is falsy) the same way it already does for password.
+      return { ...editable, password: downloadBackend.password || null, apiKey: (downloadBackend.apiKey as string | undefined) || null };
     })(),
   };
   if (version >= 9) {

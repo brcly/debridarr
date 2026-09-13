@@ -91,6 +91,7 @@
             <div class="form-grid">
               <div id="setup-backend-username-field"><label id="setup-backend-username-label" for="setup-downloadBackend-username">Username</label><input id="setup-downloadBackend-username" autocomplete="off" required></div>
               <div id="setup-backend-password-field"><label id="setup-backend-password-label" for="setup-downloadBackend-password">Password</label><input id="setup-downloadBackend-password" type="password" autocomplete="new-password" aria-describedby="setup-backend-password-help"><p id="setup-backend-password-help" class="help"></p></div>
+              <div id="setup-backend-apiKey-field"><label id="setup-backend-apiKey-label" for="setup-downloadBackend-apiKey">API key</label><input id="setup-downloadBackend-apiKey" type="password" autocomplete="new-password" aria-describedby="setup-backend-apiKey-help"><p id="setup-backend-apiKey-help" class="help"></p></div>
             </div>
             <label for="setup-downloadBackend-path-mappings">Path mappings</label>
             <textarea id="setup-downloadBackend-path-mappings" rows="3" placeholder="/remote/downloads => /downloads"></textarea>
@@ -321,6 +322,10 @@
               <select id="downloadBackend-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new password</option><option value="clear">Clear saved password</option></select>
               <label class="secret-label" for="downloadBackend-secret">New password</label>
               <input id="downloadBackend-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new password” to enter a password"></div>
+              <div id="backend-apiKey-field"><label id="backend-apiKey-label" for="downloadBackend-apikey-secret-action">API key</label>
+              <select id="downloadBackend-apikey-secret-action"><option value="keep">Leave unset</option><option value="replace">Set a new key</option><option value="clear">Clear saved key</option></select>
+              <label class="secret-label" for="downloadBackend-apikey-secret">New API key</label>
+              <input id="downloadBackend-apikey-secret" type="password" autocomplete="new-password" disabled placeholder="Choose “Set a new key” to enter an API key"></div>
               <label for="downloadBackend-path-mappings">Path mappings</label>
               <textarea id="downloadBackend-path-mappings" rows="3" placeholder="/remote/downloads => /downloads"></textarea>
               <p class="help">Optional. Add one remote path and local path per line when both containers see the same files at different locations.</p>

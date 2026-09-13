@@ -3,6 +3,12 @@ import type { DownloadProtocol, PathMapping } from './download.js';
 
 export type { PathMapping };
 
+// `apiKey` is carried on every backend type for a uniform downloadBackend
+// shape (the same convention already used for `username`, which Deluge's
+// own form never exposes either) but is only meaningful for qbittorrent:
+// its >=5.2.0 API key (Authorization: Bearer), an alternative to
+// username/password that takes priority when set and skips the
+// session-cookie login flow entirely.
 export interface QBittorrentBackendSettings {
   id: string;
   type: 'qbittorrent';
@@ -10,6 +16,7 @@ export interface QBittorrentBackendSettings {
   url: string;
   username: string;
   password: string;
+  apiKey: string;
   pathMappings: PathMapping[];
 }
 
@@ -20,6 +27,7 @@ export interface TransmissionBackendSettings {
   url: string;
   username: string;
   password: string;
+  apiKey: string;
   pathMappings: PathMapping[];
 }
 
@@ -30,6 +38,7 @@ export interface DelugeBackendSettings {
   url: string;
   username: string;
   password: string;
+  apiKey: string;
   pathMappings: PathMapping[];
 }
 
@@ -40,6 +49,7 @@ export interface SabnzbdBackendSettings {
   url: string;
   username: string;
   password: string;
+  apiKey: string;
   pathMappings: PathMapping[];
 }
 
@@ -60,7 +70,7 @@ const backendProtocols: Record<TorrentBackendType, DownloadProtocol> = {
 export const backendProtocol = (type: TorrentBackendType): DownloadProtocol => backendProtocols[type];
 
 export function emptyTorrentBackendSettings(): TorrentBackendSettings {
-  return { id: 'default', type: 'qbittorrent', protocol: 'torrent', url: '', username: '', password: '', pathMappings: [] };
+  return { id: 'default', type: 'qbittorrent', protocol: 'torrent', url: '', username: '', password: '', apiKey: '', pathMappings: [] };
 }
 
 // Matches the identity used before backend instances had persisted IDs, so an

@@ -6,7 +6,7 @@ import { SabnzbdClient } from '../integrations/sabnzbd/client.js';
 import { TransmissionClient } from '../integrations/transmission/client.js';
 
 export interface BackendFieldDescriptor {
-  key: 'url' | 'username' | 'password';
+  key: 'url' | 'username' | 'password' | 'apiKey';
   label: string;
   input: 'url' | 'text' | 'password';
   secret?: boolean;
@@ -36,8 +36,9 @@ const registrations: Record<TorrentBackendType, BackendRegistration> = {
       protocol: 'torrent',
       fields: [
         { key: 'url', label: 'Web UI address', input: 'url', required: true, placeholder: 'http://qbittorrent:8080' },
-        { key: 'username', label: 'Username', input: 'text', required: true, placeholder: 'admin' },
-        { key: 'password', label: 'Password', input: 'password', secret: true, required: true, placeholder: 'Web UI password' },
+        { key: 'username', label: 'Username', input: 'text', placeholder: 'admin (leave blank if using an API key)' },
+        { key: 'password', label: 'Password', input: 'password', secret: true, placeholder: 'Web UI password (leave blank if using an API key)' },
+        { key: 'apiKey', label: 'API key', input: 'password', secret: true, placeholder: 'qBittorrent ≥5.2.0 API key (alternative to username/password)' },
       ],
     },
     create: settings => new QBittorrentClient(settings as QBittorrentBackendSettings),

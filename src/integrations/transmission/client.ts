@@ -105,13 +105,14 @@ export class TransmissionClient implements DownloadBackend {
   private sessionCache?: { at: number; downloadDir: string; incompleteDir?: string; version: string };
   private readonly settings: TransmissionBackendSettings;
 
-  constructor(settings: Omit<TransmissionBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings'> & Partial<Pick<TransmissionBackendSettings, 'id' | 'type' | 'pathMappings'>>) {
+  constructor(settings: Omit<TransmissionBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings' | 'apiKey'> & Partial<Pick<TransmissionBackendSettings, 'id' | 'type' | 'pathMappings' | 'apiKey'>>) {
     this.settings = {
       ...settings,
       id: settings.id ?? legacyBackendId(settings.url),
       type: 'transmission',
       protocol: 'torrent',
       pathMappings: settings.pathMappings ?? [],
+      apiKey: settings.apiKey ?? '',
     };
   }
 

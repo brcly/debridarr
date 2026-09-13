@@ -83,13 +83,14 @@ export class DelugeClient implements DownloadBackend {
   private configCache?: { at: number; downloadDir: string };
   private readonly settings: DelugeBackendSettings;
 
-  constructor(settings: Omit<DelugeBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings'> & Partial<Pick<DelugeBackendSettings, 'id' | 'type' | 'pathMappings'>>) {
+  constructor(settings: Omit<DelugeBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings' | 'apiKey'> & Partial<Pick<DelugeBackendSettings, 'id' | 'type' | 'pathMappings' | 'apiKey'>>) {
     this.settings = {
       ...settings,
       id: settings.id ?? legacyBackendId(settings.url),
       type: 'deluge',
       protocol: 'torrent',
       pathMappings: settings.pathMappings ?? [],
+      apiKey: settings.apiKey ?? '',
     };
   }
 

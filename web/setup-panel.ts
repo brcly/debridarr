@@ -102,8 +102,9 @@ export function initSetupPanel(options: SetupPanelOptions) {
     options.renderBackend(settings.downloadBackend.type);
     options.discovery.render(settings.discovery.providers, 'setup');
     input('setup-downloadBackend-password').value = '';
-    input('setup-downloadBackend-password').required = !settings.downloadBackend.hasPassword;
     message('setup-backend-password-help', settings.downloadBackend.hasPassword ? 'A password is saved. Leave blank to keep it.' : 'Use the password for the selected download client.');
+    input('setup-downloadBackend-apiKey').value = '';
+    message('setup-backend-apiKey-help', settings.downloadBackend.hasApiKey ? 'An API key is saved. Leave blank to keep it, or enter a new one to replace it.' : 'qBittorrent ≥5.2.0 only: paste an API key here instead of using username/password.');
     message('setup-downloadBackend-status', ''); message('setup-feedback', '');
     element('workspace').hidden = true; element('setup-panel').hidden = false;
     renderStep(false); element('setup-title').focus();
@@ -117,6 +118,7 @@ export function initSetupPanel(options: SetupPanelOptions) {
       pathMappings: parsePathMappings(element<HTMLTextAreaElement>('setup-downloadBackend-path-mappings').value),
     };
     if (input('setup-downloadBackend-password').value) patch.password = input('setup-downloadBackend-password').value;
+    if (input('setup-downloadBackend-apiKey').value) patch.apiKey = input('setup-downloadBackend-apiKey').value;
     return patch;
   }
 
@@ -138,7 +140,7 @@ export function initSetupPanel(options: SetupPanelOptions) {
   }
 
   function exit(): void {
-    state.dirty = false; input('setup-downloadBackend-password').value = '';
+    state.dirty = false; input('setup-downloadBackend-password').value = ''; input('setup-downloadBackend-apiKey').value = '';
     element('setup-panel').hidden = true; element('workspace').hidden = false; element('open-setup').focus();
     void options.loadDownloads();
   }
@@ -146,6 +148,7 @@ export function initSetupPanel(options: SetupPanelOptions) {
   function reset(): void {
     state.dirty = false;
     input('setup-downloadBackend-password').value = '';
+    input('setup-downloadBackend-apiKey').value = '';
   }
 
   element('open-setup').addEventListener('click', () => {
@@ -195,8 +198,11 @@ export function initSetupPanel(options: SetupPanelOptions) {
       else if (state.step === 'discovery') await save({ discovery: { providers: options.discovery.draft('setup') } });
       else {
         const patch = backendDraft(); await testBackend(patch); await save({ downloadBackend: patch });
+        const saved = options.settings().downloadBackend;
         input('setup-downloadBackend-password').value = ''; input('setup-downloadBackend-password').required = false;
-        message('setup-backend-password-help', 'A password is saved. Leave blank to keep it.');
+        message('setup-backend-password-help', saved.hasPassword ? 'A password is saved. Leave blank to keep it.' : 'Use the password for the selected download client.');
+        input('setup-downloadBackend-apiKey').value = ''; input('setup-downloadBackend-apiKey').required = false;
+        message('setup-backend-apiKey-help', saved.hasApiKey ? 'An API key is saved. Leave blank to keep it, or enter a new one to replace it.' : 'qBittorrent ≥5.2.0 only: paste an API key here instead of using username/password.');
       }
       state.step = steps()[steps().indexOf(state.step) + 1]!;
       message('setup-feedback', ''); renderStep();

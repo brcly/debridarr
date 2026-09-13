@@ -205,3 +205,47 @@ test('piece API parses inclusive ranges and rejects invalid piece sizes and stat
   for (pieceSize of [0, -1, 1.5, '65536', null]) await assert.rejects(qbt.pieceSize(HASH, signal));
   for (states of [[], [3], ['2'], {}, null]) await assert.rejects(qbt.pieceStates(HASH, signal));
 });
+
+test('an API key authenticates via Authorization: Bearer, never calling the cookie login endpoint', async t => {
+  const calls: { path: string; authorization?: string }[] = [];
+  let loginCalls = 0;
+  const base = await listen(createServer((request, response) => {
+    const path = new URL(request.url!, 'http://x').pathname;
+    if (path === '/api/v2/auth/login') { loginCalls++; response.statusCode = 500; response.end('should never be called'); return; }
+    calls.push({ path, ...(request.headers.authorization ? { authorization: request.headers.authorization } : {}) });
+    if (request.headers.authorization !== 'Bearer qbt_thekey0123456789012345678') { response.statusCode = 401; response.end(); return; }
+    if (path === '/api/v2/app/version') { response.end('v5.2.0'); return; }
+    if (path === '/api/v2/torrents/info') { response.setHeader('Content-Type', 'application/json'); response.end('[]'); return; }
+    response.end('Ok.');
+  }), t);
+  const qbt = new QBittorrentClient({ url: base, username: '', password: '', apiKey: 'qbt_thekey0123456789012345678' });
+  assert.equal(qbt.configured, true);
+  const signal = AbortSignal.timeout(3000);
+  assert.equal(await qbt.version(signal), 'v5.2.0');
+  await qbt.list('debridarr', signal);
+  assert.equal(loginCalls, 0, 'the API key flow must never hit the session-cookie login endpoint');
+  assert.ok(calls.every(call => call.authorization === 'Bearer qbt_thekey0123456789012345678'));
+  assert.equal((await qbt.test()).ok, true);
+});
+
+test('an unconfigured qBittorrent needs either an API key or username+password, not partial credentials', () => {
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: '', password: '' }).configured, false);
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: 'u', password: '' }).configured, false);
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: '', password: 'p' }).configured, false);
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: 'u', password: 'p' }).configured, true);
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: '', password: '', apiKey: 'k' }).configured, true);
+  // The API key takes priority even when username/password are also set.
+  assert.equal(new QBittorrentClient({ url: 'http://x', username: 'u', password: 'p', apiKey: 'k' }).configured, true);
+});
+
+test('a bad API key fails once without retrying — there is nothing client-side to refresh', async t => {
+  let calls = 0;
+  const base = await listen(createServer((_request, response) => {
+    calls++;
+    response.statusCode = 401;
+    response.end();
+  }), t);
+  const qbt = new QBittorrentClient({ url: base, username: '', password: '', apiKey: 'bad-key' });
+  await assert.rejects(qbt.version(AbortSignal.timeout(3000)));
+  assert.equal(calls, 1);
+});

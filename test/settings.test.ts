@@ -61,12 +61,27 @@ test('serialized writes merge with latest settings; failure preserves memory and
 
 test('corrupt, incomplete, unsupported, and unreadable settings are not silently reset', async t => {
   const dir = await tmpDir(t, 'debridarr-settings');
-  for (const contents of ['{broken', JSON.stringify({ version: 18, settings: emptySettings() }), '{"version":1,"settings":{}}']) {
+  for (const contents of ['{broken', JSON.stringify({ version: currentSettingsVersion + 1, settings: emptySettings() }), '{"version":1,"settings":{}}']) {
     await writeFile(join(dir, 'settings.json'), contents);
     await assert.rejects(SettingsStore.open(dir, {}), /invalid or unsupported/);
     assert.equal(await readFile(join(dir, 'settings.json'), 'utf8'), contents);
   }
   await assert.rejects(SettingsStore.open(join(dir, 'settings.json', 'child'), {}), /Cannot read settings storage/);
+});
+
+test('a v17 downloadBackend (no apiKey field) migrates cleanly, defaulting apiKey to empty', async t => {
+  const dir = await tmpDir(t, 'debridarr-settings');
+  const v18 = emptySettings();
+  const { apiKey: _apiKey, ...v17DownloadBackend } = v18.downloadBackend;
+  const v17 = { ...v18, downloadBackend: v17DownloadBackend };
+  await writeFile(join(dir, 'settings.json'), JSON.stringify({ version: 17, settings: v17 }));
+  const store = await SettingsStore.open(dir, {});
+  assert.equal(store.snapshot().downloadBackend.apiKey, '');
+  assert.equal(publicSettings(store.snapshot()).downloadBackend.hasApiKey, false);
+  await store.update({ retention: { days: 60 } });
+  const saved = JSON.parse(await readFile(join(dir, 'settings.json'), 'utf8'));
+  assert.equal(saved.version, currentSettingsVersion);
+  assert.equal(saved.settings.downloadBackend.apiKey, '');
 });
 
 test('invalid edits are rejected without exposing supplied secrets', () => {
@@ -363,7 +378,7 @@ test('all saved schemas preserve settings, apply new defaults, and migrate only 
     assert.equal(await readFile(path, 'utf8'), original, 'reading never rewrites a legacy file');
     await store.update({ retention: { days: 60 } });
     const saved = JSON.parse(await readFile(path, 'utf8'));
-    assert.equal(saved.version, 17);
+    assert.equal(saved.version, currentSettingsVersion);
     assert.equal(saved.settings.retention.days, 60);
     assert.deepEqual((await SettingsStore.open(dir, {})).snapshot(), store.snapshot());
   }
@@ -453,6 +468,36 @@ test('legacy backend ownership is retained while connection details and path map
   assert.equal(store.snapshot().downloadBackend.type, 'sabnzbd');
   assert.equal(store.snapshot().downloadBackend.protocol, 'usenet');
   assert.notEqual(store.snapshot().downloadBackend.id, delugeId);
+});
+
+test('downloadBackend.apiKey follows the same keep/replace/clear rules as password, and stays hidden', async t => {
+  const dir = await tmpDir(t, 'debridarr-apikey');
+  const store = await SettingsStore.open(dir, {});
+  assert.equal(store.snapshot().downloadBackend.apiKey, '');
+  assert.equal(publicSettings(store.snapshot()).downloadBackend.hasApiKey, false);
+
+  await store.update({ downloadBackend: { apiKey: 'qbt_secretkey0123456789012345' } });
+  assert.equal(store.snapshot().downloadBackend.apiKey, 'qbt_secretkey0123456789012345');
+  const visible = publicSettings(store.snapshot());
+  assert.equal(visible.downloadBackend.hasApiKey, true);
+  assert.ok(!JSON.stringify(visible).includes('qbt_secretkey'));
+
+  // Omitting the field keeps it; an explicit empty string is rejected as
+  // ambiguous (use null to clear); null clears it.
+  await store.update({ downloadBackend: { url: 'http://qbt.test' } });
+  assert.equal(store.snapshot().downloadBackend.apiKey, 'qbt_secretkey0123456789012345');
+  await assert.rejects(store.update({ downloadBackend: { apiKey: '' } }), SettingsValidationError);
+  await assert.rejects(store.update({ downloadBackend: { apiKey: 'has\ncontrol' } }), SettingsValidationError);
+  await assert.rejects(store.update({ downloadBackend: { apiKey: 'x'.repeat(4097) } }), SettingsValidationError);
+  await store.update({ downloadBackend: { apiKey: null } });
+  assert.equal(store.snapshot().downloadBackend.apiKey, '');
+  assert.equal(publicSettings(store.snapshot()).downloadBackend.hasApiKey, false);
+
+  // apiKey is a uniform downloadBackend field (like username), so switching
+  // to a backend type without a UI control for it must not throw.
+  await store.update({ downloadBackend: { type: 'transmission', url: 'http://transmission.test', username: 'u', password: 'p' } });
+  assert.equal(store.snapshot().downloadBackend.type, 'transmission');
+  assert.equal(publicSettings(store.snapshot()).downloadBackend.hasApiKey, false);
 });
 
 test('store download limits validate and persist live changes', async t => {

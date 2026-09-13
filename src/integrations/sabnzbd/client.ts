@@ -120,13 +120,14 @@ function toSnapshot(job: SabJob): DownloadSnapshot {
 export class SabnzbdClient implements DownloadBackend {
   private readonly settings: SabnzbdBackendSettings;
 
-  constructor(settings: Omit<SabnzbdBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings'> & Partial<Pick<SabnzbdBackendSettings, 'id' | 'type' | 'pathMappings'>>) {
+  constructor(settings: Omit<SabnzbdBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings' | 'apiKey'> & Partial<Pick<SabnzbdBackendSettings, 'id' | 'type' | 'pathMappings' | 'apiKey'>>) {
     this.settings = {
       ...settings,
       id: settings.id ?? legacyBackendId(settings.url),
       type: 'sabnzbd',
       protocol: 'usenet',
       pathMappings: settings.pathMappings ?? [],
+      apiKey: settings.apiKey ?? '',
     };
   }
 

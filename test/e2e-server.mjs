@@ -43,7 +43,7 @@ const mock = createServer((req, res) => {
         res.setHeader('Set-Cookie', 'SID=browserSession; Path=/'); res.end('Ok.');
       } else res.end('Fails.');
     });
-  } else if (req.headers.cookie !== 'SID=browserSession') {
+  } else if (req.headers.cookie !== 'SID=browserSession' && req.headers.authorization !== 'Bearer browser-qbt-apikey') {
     res.statusCode = 401; res.end('Unauthorized');
   } else if (url.pathname === '/qbt/api/v2/app/version') {
     res.end('v5.0.4');

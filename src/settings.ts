@@ -226,13 +226,13 @@ function applyDownloadBackendPatch(current: TorrentBackendSettings, fields: Reco
       continue;
     }
     if (key === 'pathMappings') { next.pathMappings = pathMappings(rawValue); continue; }
-    if (key !== 'url' && key !== 'username' && key !== 'password') throw new SettingsValidationError('Unknown settings field');
-    const secret = key === 'password';
-    if (rawValue === null && secret) { next.password = ''; continue; }
+    if (key !== 'url' && key !== 'username' && key !== 'password' && key !== 'apiKey') throw new SettingsValidationError('Unknown settings field');
+    const secret = key === 'password' || key === 'apiKey';
+    if (rawValue === null && secret) { next[key] = ''; continue; }
     if (typeof rawValue !== 'string' || rawValue.length > 4096 || /[\x00-\x1f\x7f]/.test(rawValue)) {
       throw new SettingsValidationError(`downloadBackend.${key} must be text without control characters (maximum 4096 characters)`);
     }
-    if (secret && rawValue === '') throw new SettingsValidationError('Omit downloadBackend.password to keep it, or use null to clear it');
+    if (secret && rawValue === '') throw new SettingsValidationError(`Omit downloadBackend.${key} to keep it, or use null to clear it`);
     next[key] = key === 'url' ? url(rawValue.trim(), 'downloadBackend.url') : secret ? rawValue : rawValue.trim();
   }
   return next;
@@ -461,6 +461,7 @@ export function seedSettings(env: NodeJS.ProcessEnv): Settings {
     downloadBackend: {
       url: env.QBITTORRENT_URL ?? '', username: env.QBITTORRENT_USERNAME ?? '',
       password: env.QBITTORRENT_PASSWORD?.trim() ? env.QBITTORRENT_PASSWORD : null,
+      apiKey: env.QBITTORRENT_API_KEY?.trim() ? env.QBITTORRENT_API_KEY : null,
     },
     metadata,
   });
@@ -481,6 +482,7 @@ export function publicSettings(settings: Settings) {
       username: settings.downloadBackend.username,
       pathMappings: settings.downloadBackend.pathMappings,
       hasPassword: !!settings.downloadBackend.password,
+      hasApiKey: !!settings.downloadBackend.apiKey,
     },
     discovery: { providers: settings.discovery.providers.map(provider => ({
       id: provider.id, type: provider.type, url: provider.url, hasApiKey: !!provider.apiKey,

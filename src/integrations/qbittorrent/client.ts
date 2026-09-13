@@ -47,13 +47,14 @@ export class QBittorrentClient implements DownloadBackend {
   // or qBittorrent's IP-address auth bypass (which issues no cookie).
   private authed = false;
   private readonly settings: QBittorrentBackendSettings;
-  constructor(settings: Omit<QBittorrentBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings'> & Partial<Pick<QBittorrentBackendSettings, 'id' | 'type' | 'pathMappings'>>) {
+  constructor(settings: Omit<QBittorrentBackendSettings, 'id' | 'type' | 'protocol' | 'pathMappings' | 'apiKey'> & Partial<Pick<QBittorrentBackendSettings, 'id' | 'type' | 'pathMappings' | 'apiKey'>>) {
     this.settings = {
       ...settings,
       id: settings.id ?? legacyBackendId(settings.url),
       type: 'qbittorrent',
       protocol: 'torrent',
       pathMappings: settings.pathMappings ?? [],
+      apiKey: settings.apiKey ?? '',
     };
   }
 
@@ -77,7 +78,13 @@ export class QBittorrentClient implements DownloadBackend {
   get pathMappings() { return this.settings.pathMappings; }
 
   get configured(): boolean {
-    return Boolean(this.settings.url && this.settings.username && this.settings.password);
+    return Boolean(this.settings.url && (this.settings.apiKey || (this.settings.username && this.settings.password)));
+  }
+  // The API key (qBittorrent >=5.2.0) takes priority when set: it skips the
+  // session-cookie login flow entirely, so a stale username/password left
+  // over from an earlier configuration cannot silently take precedence.
+  private get useApiKey(): boolean {
+    return !!this.settings.apiKey;
   }
   private get origin(): string {
     return new URL(this.settings.url).origin;
@@ -116,9 +123,13 @@ export class QBittorrentClient implements DownloadBackend {
   private async api(path: string, signal: AbortSignal, form?: Record<string, string> | FormData): Promise<Response> {
     if (!this.configured) throw new ConnectionError('not_configured');
     const send = async () => {
-      if (!this.cookie && !this.authed) await this.login(signal);
       const headers: Record<string, string> = { Origin: this.origin };
-      if (this.cookie) headers.Cookie = this.cookie;
+      if (this.useApiKey) {
+        headers.Authorization = `Bearer ${this.settings.apiKey}`;
+      } else {
+        if (!this.cookie && !this.authed) await this.login(signal);
+        if (this.cookie) headers.Cookie = this.cookie;
+      }
       const init: RequestInit = { headers };
       if (form) {
         init.method = 'POST';
@@ -129,7 +140,9 @@ export class QBittorrentClient implements DownloadBackend {
     try {
       return await send();
     } catch (error) {
-      if (error instanceof ConnectionError && error.code === 'authentication') {
+      // A bad/rotated API key has nothing to refresh client-side; retrying
+      // would just repeat the same 401. Only the cookie flow re-logs-in.
+      if (!this.useApiKey && error instanceof ConnectionError && error.code === 'authentication') {
         this.cookie = '';
         this.authed = false;
         return send();

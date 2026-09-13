@@ -2,7 +2,7 @@ export interface RetentionSettings { storeLeaseDays: number; days: number; targe
 export interface PlaybackSettings { streamWhileDownloading: boolean }
 export interface PreferencesSettings { languages: string[]; resolutions: number[]; codecs: string[] }
 export interface PathMapping { remote: string; local: string }
-export interface BackendFieldDescriptor { key: 'url' | 'username' | 'password'; label: string; input: 'url' | 'text' | 'password'; secret?: boolean; required?: boolean; placeholder: string }
+export interface BackendFieldDescriptor { key: 'url' | 'username' | 'password' | 'apiKey'; label: string; input: 'url' | 'text' | 'password'; secret?: boolean; required?: boolean; placeholder: string }
 export interface BackendDescriptor { type: string; label: string; description: string; protocol: 'torrent' | 'usenet'; fields: BackendFieldDescriptor[] }
 export interface DiscoveryFieldDescriptor { key: 'url' | 'apiKey'; label: string; input: 'url' | 'text' | 'password'; secret?: boolean; required?: boolean; placeholder: string }
 export interface DiscoveryProviderDescriptor { type: string; label: string; description: string; fields: DiscoveryFieldDescriptor[] }
@@ -30,7 +30,7 @@ export interface PublicSettings {
   setup: { completed: boolean };
   integrations: { mode: string };
   store: { maxActiveDownloads: number };
-  downloadBackend: { id: string; type: string; protocol: 'torrent' | 'usenet'; url: string; username: string; pathMappings: PathMapping[]; hasPassword: boolean };
+  downloadBackend: { id: string; type: string; protocol: 'torrent' | 'usenet'; url: string; username: string; pathMappings: PathMapping[]; hasPassword: boolean; hasApiKey: boolean };
   discovery: { providers: PublicDiscoveryProvider[] };
   metadata: { provider: string; hasTmdbApiKey: boolean };
   playback: PlaybackSettings;

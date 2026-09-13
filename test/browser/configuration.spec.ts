@@ -61,6 +61,23 @@ test('administrator can edit, test, save, reload, clear secrets, and sign out', 
   await page.locator('#downloadBackend-type').selectOption('qbittorrent');
   await expect(page.locator('#backend-protocol-note')).toBeHidden();
 
+  // The API key field is qBittorrent-only: an alternative to username/password
+  // that authenticates without ever calling the session-cookie login endpoint.
+  await expect(page.locator('#backend-apiKey-field')).toBeVisible();
+  await page.locator('#downloadBackend-type').selectOption('deluge');
+  await expect(page.locator('#backend-apiKey-field')).toBeHidden();
+  await page.locator('#downloadBackend-type').selectOption('qbittorrent');
+  await page.locator('#downloadBackend-url').fill('http://127.0.0.1:17071/qbt');
+  await page.locator('#downloadBackend-apikey-secret-action').selectOption('replace');
+  await page.getByLabel('New API key', { exact: true }).fill('browser-qbt-apikey');
+  await page.locator('#test-downloadBackend').click();
+  await expect(page.locator('#downloadBackend-status')).toContainText('Connected successfully');
+  // Reset before the username/password flow below so the two auth modes in
+  // this test don't interact; testing the draft above must not have saved it.
+  await page.locator('#downloadBackend-apikey-secret-action').selectOption('keep');
+  const beforeApiKeySave = await page.evaluate(() => fetch('/api/admin/settings').then(r => r.json()));
+  expect(beforeApiKeySave.settings.downloadBackend.hasApiKey).toBe(false);
+
   // Discovery providers are descriptor-driven rows and test without saving.
   await page.locator('#add-discovery-provider').click();
   const provider = page.locator('.discovery-provider').first();
