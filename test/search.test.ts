@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { test, type TestContext } from 'node:test';
 import type { DiscoveryProviderPreferences } from '../src/discovery/config.js';
+import type { ReleaseSource } from '../src/discovery/source.js';
 import { ProwlarrClient } from '../src/integrations/prowlarr/client.js';
 import type { MediaId, MetadataProvider, ResolvedTitle } from '../src/metadata/index.js';
 import { buildQueries, findReleases, type DiscoverySource } from '../src/search/index.js';
@@ -11,7 +12,7 @@ import { rankCandidates, type Candidate } from '../src/search/rank.js';
 import { listen } from './helpers.js';
 
 const noPreferences: DiscoveryProviderPreferences = { languages: [], resolutions: [], codecs: [] };
-const origin = (releaseSource: ProwlarrClient, preferences: DiscoveryProviderPreferences = noPreferences): DiscoverySource => ({ source: releaseSource, preferences });
+const origin = (releaseSource: ReleaseSource, preferences: DiscoveryProviderPreferences = noPreferences): DiscoverySource => ({ source: releaseSource, preferences });
 
 test('parseReleaseTitle reads resolution, source, codec, HDR, year, and season/episode', () => {
   assert.deepEqual(parseReleaseTitle('The Matrix 1999 2160p UHD BluRay x265-GRP'),
@@ -53,6 +54,9 @@ test('releaseMatches enforces title words, year proximity, and season/episode', 
   assert.equal(ok('The Matrix 2003 1080p'), false, 'year too far off');
   assert.equal(ok('The Matrix Reloaded 2003 1080p'), false, 'different movie, year off');
   assert.equal(ok('Completely Unrelated 1999 1080p'), false, 'missing title words');
+  const friends: ResolvedTitle = { type: 'series', imdbId: 'tt3', title: 'Friends', alternateTitles: [], season: 2, episode: 4 };
+  assert.equal(ok('Friends S02E04 1080p WEB-DL', friends), true);
+  assert.equal(ok('Your Friends and Neighbours S02E04 1080p WEB-DL', friends), false, 'a partial word match is not the requested series');
 
   const episode: ResolvedTitle = { type: 'series', imdbId: 'tt2', title: 'Game of Thrones', alternateTitles: [], season: 2, episode: 3 };
   const series = (releaseTitle: string) =>
@@ -172,6 +176,22 @@ test('findReleases tolerates a failing query and still returns the other results
   const wanted: ResolvedTitle = { type: 'series', imdbId: 'tt2', title: 'Game of Thrones', alternateTitles: [], season: 2, episode: 3 };
   const results = await findReleases({ id: idOf(wanted), metadata: fakeMetadata(wanted), sources: [source], signal: AbortSignal.timeout(3000) });
   assert.deepEqual(results.map(candidate => candidate.release.title), ['Game of Thrones S02E03 1080p WEB-DL']);
+});
+
+test('findReleases returns an episode result when its sibling season query times out', async () => {
+  const source: ReleaseSource = {
+    configured: true,
+    test: async () => ({ ok: true, code: 'connected', message: 'Connected successfully.' }),
+    search: async (query, signal) => {
+      if (!query.endsWith('S02')) return [release('Game of Thrones S02E03 1080p WEB-DL', { seeders: 12 })];
+      return await new Promise<never>((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+    },
+  };
+  const wanted: ResolvedTitle = { type: 'series', imdbId: 'tt2', title: 'Game of Thrones', alternateTitles: [], season: 2, episode: 3 };
+  const started = Date.now();
+  const results = await findReleases({ id: idOf(wanted), metadata: fakeMetadata(wanted), sources: [origin(source)], signal: AbortSignal.timeout(1000), queryTimeoutMs: 20 });
+  assert.deepEqual(results.map(candidate => candidate.release.title), ['Game of Thrones S02E03 1080p WEB-DL']);
+  assert.ok(Date.now() - started < 250, 'the slow season query is cut short without discarding the episode result');
 });
 
 test('findReleases filters to an allow-set of resolutions and languages, not a cap or single value; untagged releases always pass', async t => {

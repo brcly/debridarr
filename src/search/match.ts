@@ -24,9 +24,13 @@ export interface MatchInput {
   wanted: ResolvedTitle;
 }
 
-function titleHits(haystack: string, words: Set<string>, title: string): boolean {
-  const tokens = titleTokens(title);
-  return tokens.length > 0 && tokens.every(token => words.has(token) || haystack.includes(token));
+function titleHits(releaseTitle: string, title: string): boolean {
+  const wanted = normalizeTitle(title);
+  // Search backends commonly return partial word matches. Treating every title
+  // token as independent makes short names especially unsafe: "Friends" would
+  // accept "Your Friends and Neighbours". Scene release names conventionally
+  // begin with the title, so require the complete normalized title at the start.
+  return Boolean(wanted) && (releaseTitle === wanted || releaseTitle.startsWith(`${wanted} `));
 }
 
 // A release matches when every significant word of the wanted title — or of
@@ -37,8 +41,7 @@ function titleHits(haystack: string, words: Set<string>, title: string): boolean
 // could match by coincidence.
 export function releaseMatches({ releaseTitle, parsed, wanted }: MatchInput): boolean {
   const haystack = normalizeTitle(releaseTitle);
-  const words = new Set(haystack.split(' '));
-  const titleOk = [wanted.title, ...wanted.alternateTitles].some(title => titleHits(haystack, words, title));
+  const titleOk = [wanted.title, ...wanted.alternateTitles].some(title => titleHits(haystack, title));
   if (!titleOk) return false;
 
   if (wanted.type === 'movie') {

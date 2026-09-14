@@ -71,6 +71,9 @@ export interface FindReleasesOptions {
   sources: DiscoverySource[];
   signal: AbortSignal;
   limit?: number;
+  // A caller serving an interactive client can bound each concurrent query so
+  // one slow season-pack search does not hold an otherwise useful response.
+  queryTimeoutMs?: number;
   // Releases whose protocol is not listed are unusable. Defaults to torrent
   // so a torrent-only backend never surfaces NZB results.
   protocols?: readonly DownloadProtocol[];
@@ -82,7 +85,7 @@ export interface FindReleasesOptions {
 // Individual source or query failures are tolerated; the caller decides what
 // an empty result means.
 export async function findReleases(options: FindReleasesOptions): Promise<Candidate[]> {
-  const { id, metadata, sources, signal, limit = DEFAULT_LIMIT, protocols = ['torrent'] } = options;
+  const { id, metadata, sources, signal, limit = DEFAULT_LIMIT, protocols = ['torrent'], queryTimeoutMs } = options;
   const active = sources.filter(({ source }) => source.configured);
   if (!active.length) return [];
 
@@ -91,10 +94,12 @@ export async function findReleases(options: FindReleasesOptions): Promise<Candid
   const categories = id.type === 'movie' ? MOVIE_CATEGORIES : SERIES_CATEGORIES;
   const queries = buildQueries(id, wanted.title, wanted.year, wanted.alternateTitles[0]);
   const jobs = active.flatMap((source, sourceIndex) =>
-    queries.map((query, queryIndex) => ({ source, sourceIndex, queryIndex, query })));
+    queries.map((query, queryIndex) => ({ source, sourceIndex, queryIndex, query,
+      signal: queryTimeoutMs === undefined ? signal : AbortSignal.any([signal, AbortSignal.timeout(queryTimeoutMs)]),
+    })));
 
   const batches = await Promise.allSettled(
-    jobs.map(job => job.source.source.search(job.query, signal, categories)),
+    jobs.map(job => job.source.source.search(job.query, job.signal, categories)),
   );
 
   const seen = new Set<string>();
@@ -109,7 +114,7 @@ export async function findReleases(options: FindReleasesOptions): Promise<Candid
     const job = jobs[index]!;
     if (batch.status !== 'fulfilled') {
       failed++;
-      const reason = signal.aborted ? 'timeout' : batch.reason instanceof ConnectionError ? batch.reason.code : 'unavailable';
+      const reason = job.signal.aborted ? 'timeout' : batch.reason instanceof ConnectionError ? batch.reason.code : 'unavailable';
       log.warn(`Debridarr discovery search ${id.type}/${id.imdbId} source=${job.sourceIndex + 1} query=${job.queryIndex + 1} failed: ${reason}`);
       continue;
     }

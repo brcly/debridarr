@@ -9,7 +9,7 @@ import { parseReleaseTitle } from '../search/parse.js';
 import { magnetInfoHash } from '../downloads/magnet.js';
 import { streamLabel } from './presentation.js';
 import { log } from '../log.js';
-import { CACHED_COPIES_TIMEOUT_MS, SEARCH_DEADLINE_MS } from '../timeouts.js';
+import { CACHED_COPIES_TIMEOUT_MS, SEARCH_DEADLINE_MS, STREMIO_QUERY_TIMEOUT_MS } from '../timeouts.js';
 
 export { sizeLabel } from './presentation.js';
 
@@ -50,7 +50,7 @@ export async function getStreams(id: MediaId, context: StreamContext): Promise<{
     if (!sources.some(({ source }) => source.configured)) return [];
     try {
       const metadata = createMetadataProvider(context.settings.metadata);
-      return await findReleases({ id, metadata, sources, signal, protocols: [context.settings.downloadBackend.protocol] });
+      return await findReleases({ id, metadata, sources, signal, queryTimeoutMs: STREMIO_QUERY_TIMEOUT_MS, protocols: [context.settings.downloadBackend.protocol] });
     } catch (error) {
       log.warn(`Debridarr search ${id.type}/${id.imdbId} failed: ${signal.aborted ? 'timeout' : error instanceof MetadataError ? `metadata_${error.code}` : 'upstream'} after ${Date.now() - started}ms.`);
       return [];
