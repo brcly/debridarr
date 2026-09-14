@@ -14,7 +14,11 @@ export { parseReleaseTitle } from './parse.js';
 export { releaseMatches, normalizeTitle, titleTokens } from './match.js';
 export { rankCandidates } from './rank.js';
 
-const DEFAULT_LIMIT = 50;
+// Applies only to callers that don't pass their own `limit` (the Stremio
+// addon path). Some Stremio clients (observed: Android TV) have failed to
+// render a stream list at all with a large result count; other debrid
+// addons commonly cap in the 15-20 range for the same reason.
+const DEFAULT_LIMIT = 20;
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
