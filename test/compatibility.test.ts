@@ -75,11 +75,11 @@ test('Stremio addon protocol: search-mode manifest, empty streams, CORS, and sto
   assert.equal(meta.meta.type, 'other');
 
   const streams = await (await fetch(`${store.addon}/stream/other/db:${HASH}.json`)).json() as {
-    streams: { name: string; title: string; description: string; url: string; behaviorHints: { notWebReady: boolean; bingeGroup: string } }[];
+    streams: { name: string; title: string; url: string; behaviorHints: { notWebReady: boolean; bingeGroup: string } }[];
   };
   assert.equal(streams.streams.length, 1);
   const stream = streams.streams[0]!;
-  assert.equal(stream.description, stream.title);
+  assert.ok(!Object.hasOwn(stream, 'description'));
   assert.match(stream.url, /\/api\/v1\/download\//);
   assert.equal(stream.behaviorHints.notWebReady, true);
   assert.match(stream.behaviorHints.bingeGroup, /^debridarr-store-/);

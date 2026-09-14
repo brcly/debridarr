@@ -55,7 +55,7 @@ test('cached and fresh labels show the release name but never its file path', as
   assert.match(cached!.title, /▶️ Ready to play/);
   for (const stream of [fresh!, cached!]) {
     assert.equal(stream.title.split('\n')[0], title, 'release name leads the detail block');
-    assert.equal(stream.description, stream.title, 'description mirrors title for the addon SDK deprecation');
+    assert.ok(!Object.hasOwn(stream, 'description'), 'the Android-incompatible duplicate description is omitted');
     assert.equal(stream.behaviorHints.notWebReady, true);
     assert.match(stream.behaviorHints.bingeGroup, /^debridarr-/);
     assert.doesNotMatch(stream.title, /private-long|folder|owner/, 'the on-disk file path stays server-side');
@@ -69,7 +69,7 @@ test('series labels distinguish an episode from a season pack from a full-series
   const episode = label('The Show S02E05 1080p WEB-DL x265-GRP');
   assert.equal(episode.name, 'Debridarr · 1080p · S02E05');
   assert.match(episode.title, /^The Show S02E05 1080p WEB-DL x265-GRP\n📺 /);
-  assert.equal(episode.description, episode.title);
+  assert.ok(!Object.hasOwn(episode, 'description'));
 
   assert.equal(label('The Show S02 COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr · 1080p · Season 2');
   assert.equal(label('The Show COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr · 1080p · Complete');

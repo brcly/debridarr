@@ -46,18 +46,19 @@ export interface LabelOptions {
   cache?: { progress: number };
 }
 
-// Stremio renders `name` as the compact left-hand badge and `title`/`description`
-// as the detail block. `title` is still widely read; the addon SDK is
-// deprecating it in favour of `description`, so both carry the same text.
+// Stremio renders `name` as the compact left-hand badge and `title` as the
+// detail block. Do not send the newer `description` field as a duplicate: some
+// Android TV builds reject the entire stream array when it is present, while
+// `title` is understood by every supported Stremio client.
 // `name` is kept single-line (no embedded newline): it's meant as a short
 // badge, and at least one Stremio client (Android TV) has been observed
 // failing to render a stream list at all when `name` contains a raw '\n' -
 // other addons (Torrentio, AIOStreams) keep it single-line, and this one
-// didn't. `title`/`description` are still multi-line by design.
+// didn't. `title` is still multi-line by design.
 // The detail leads with the raw release name — so an episode is never confused
 // with a season pack — then icon-tagged chips for quality, size, availability
 // and language, the way other debrid addons present their results.
-export function streamLabel(release: string, parsed: ParsedRelease, size: number, options: LabelOptions = {}): { name: string; title: string; description: string } {
+export function streamLabel(release: string, parsed: ParsedRelease, size: number, options: LabelOptions = {}): { name: string; title: string } {
   const cached = options.cache && options.cache.progress >= 1;
   const badge = options.cache ? (cached ? '⚡ Cached' : `⏳ ${Math.floor(options.cache.progress * 100)}%`) : undefined;
   const subtitle = [resolutionLabel(parsed.resolution), scopeLabel(parsed)].filter(Boolean).join(' · ');
@@ -82,5 +83,5 @@ export function streamLabel(release: string, parsed: ParsedRelease, size: number
     quality ? `${isSeries ? '📺' : '🎬'} ${quality}` : undefined,
     stats,
   ].filter(Boolean).join('\n');
-  return { name, title, description: title };
+  return { name, title };
 }

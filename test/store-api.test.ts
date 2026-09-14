@@ -69,7 +69,7 @@ test('native REST adds, batches status, lists files, links selected files and de
   assert.match(stream.url, /\/api\/v1\/download\//);
   assert.match(stream.name, /Debridarr/);
   assert.match(stream.title, /Ready to play/);
-  assert.equal(stream.description, stream.title);
+  assert.ok(!Object.hasOwn(stream, 'description'));
   assert.equal(stream.behaviorHints.notWebReady, true);
   assert.deepEqual(await streams('e'.repeat(40)), []);
   const row = torrents.get(HASH)!;

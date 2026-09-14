@@ -26,7 +26,6 @@ export interface StreamContext {
 export interface StremioStream {
   name: string;
   title: string;
-  description: string;
   url: string;
   behaviorHints: { notWebReady: boolean; bingeGroup: string };
 }
