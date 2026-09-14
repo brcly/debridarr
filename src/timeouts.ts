@@ -16,10 +16,10 @@
 export const CONNECTION_TEST_TIMEOUT_MS = 10_000;
 
 // addon/streams.ts: deadline for one Stremio search fan-out.
-export const SEARCH_DEADLINE_MS = 10_000;
+export const SEARCH_DEADLINE_MS = 15_000;
 // Per-query cap within the Stremio search budget. Series searches issue both
 // episode and season-pack queries; one slow query must not delay the other.
-export const STREMIO_QUERY_TIMEOUT_MS = 9_500;
+export const STREMIO_QUERY_TIMEOUT_MS = 12_000;
 // addon/streams.ts: reading cached-copy state from the backend while
 // building search results.
 export const CACHED_COPIES_TIMEOUT_MS = 5_000;
