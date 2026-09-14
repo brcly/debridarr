@@ -26,7 +26,7 @@ test('buildStreams maps ranked releases to absolute Stremio stream URLs with med
     'https://addon.example',
     async entries => { targets = entries; return ['opaque-reference']; },
   );
-  assert.equal(stream!.name, 'Debridarr\n4K');
+  assert.equal(stream!.name, 'Debridarr · 4K');
   assert.equal(stream!.title, 'The Matrix 1999 2160p BluRay x265-GRP\n🎬 BluRay · H.265 · GRP\n👤 21 · 💾 2.0 GB · ⚙️ YTS');
   assert.equal(stream!.title.split('\n').length, 3);
   assert.match(stream!.url, /^https:\/\/addon\.example\/play\/[A-Za-z0-9_-]+$/);
@@ -67,15 +67,15 @@ test('series labels distinguish an episode from a season pack from a full-series
   const label = (name: string) => streamLabel(name, parseReleaseTitle(name), 1_000_000_000, { seeders: 5 });
 
   const episode = label('The Show S02E05 1080p WEB-DL x265-GRP');
-  assert.equal(episode.name, 'Debridarr\n1080p · S02E05');
+  assert.equal(episode.name, 'Debridarr · 1080p · S02E05');
   assert.match(episode.title, /^The Show S02E05 1080p WEB-DL x265-GRP\n📺 /);
   assert.equal(episode.description, episode.title);
 
-  assert.equal(label('The Show S02 COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr\n1080p · Season 2');
-  assert.equal(label('The Show COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr\n1080p · Complete');
-  assert.equal(label('The Show S01-S03 1080p WEB-DL x265-GRP').name, 'Debridarr\n1080p · Complete', 'a season span reads as full-series, not season 1');
+  assert.equal(label('The Show S02 COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr · 1080p · Season 2');
+  assert.equal(label('The Show COMPLETE 1080p WEB-DL x265-GRP').name, 'Debridarr · 1080p · Complete');
+  assert.equal(label('The Show S01-S03 1080p WEB-DL x265-GRP').name, 'Debridarr · 1080p · Complete', 'a season span reads as full-series, not season 1');
 
   const movie = label('The Movie 2020 1080p BluRay x264-GRP');
-  assert.equal(movie.name, 'Debridarr\n1080p');
+  assert.equal(movie.name, 'Debridarr · 1080p');
   assert.match(movie.title, /\n🎬 /);
 });

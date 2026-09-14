@@ -49,6 +49,11 @@ export interface LabelOptions {
 // Stremio renders `name` as the compact left-hand badge and `title`/`description`
 // as the detail block. `title` is still widely read; the addon SDK is
 // deprecating it in favour of `description`, so both carry the same text.
+// `name` is kept single-line (no embedded newline): it's meant as a short
+// badge, and at least one Stremio client (Android TV) has been observed
+// failing to render a stream list at all when `name` contains a raw '\n' -
+// other addons (Torrentio, AIOStreams) keep it single-line, and this one
+// didn't. `title`/`description` are still multi-line by design.
 // The detail leads with the raw release name — so an episode is never confused
 // with a season pack — then icon-tagged chips for quality, size, availability
 // and language, the way other debrid addons present their results.
@@ -56,7 +61,7 @@ export function streamLabel(release: string, parsed: ParsedRelease, size: number
   const cached = options.cache && options.cache.progress >= 1;
   const badge = options.cache ? (cached ? '⚡ Cached' : `⏳ ${Math.floor(options.cache.progress * 100)}%`) : undefined;
   const subtitle = [resolutionLabel(parsed.resolution), scopeLabel(parsed)].filter(Boolean).join(' · ');
-  const name = [`Debridarr${badge ? ` ${badge}` : ''}`, subtitle || undefined].filter(Boolean).join('\n');
+  const name = [`Debridarr${badge ? ` ${badge}` : ''}`, subtitle || undefined].filter(Boolean).join(' · ');
 
   const isSeries = parsed.seasonPack || parsed.season !== undefined || parsed.episode !== undefined;
   const quality = [SOURCES[parsed.source ?? ''], CODECS[parsed.codec ?? ''], parsed.hdr ? 'HDR' : undefined, parsed.group]
