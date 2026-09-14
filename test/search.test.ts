@@ -113,18 +113,18 @@ test('rankCandidates floats a downloadable season pack above single episodes, bu
   assert.deepEqual(usenet, ['Show S02 COMPLETE 1080p WEB-DL', 'Show S02E03 1080p WEB-DL'], 'a Usenet pack is not judged by seeders');
 });
 
-test('buildQueries covers the episode and its season pack', () => {
+test('buildQueries covers the episode and a broad title search for season packs', () => {
   assert.deepEqual(buildQueries({ type: 'movie', imdbId: 'tt1' }, 'The Matrix', 1999), ['The Matrix 1999']);
   assert.deepEqual(buildQueries({ type: 'movie', imdbId: 'tt1' }, 'The Matrix'), ['The Matrix']);
   assert.deepEqual(buildQueries({ type: 'series', imdbId: 'tt2', season: 2, episode: 3 }, 'GoT'),
-    ['GoT S02E03', 'GoT S02']);
+    ['GoT S02E03', 'GoT']);
 });
 
 test('buildQueries also searches an alternate/original title when one is given', () => {
   assert.deepEqual(buildQueries({ type: 'movie', imdbId: 'tt1' }, 'Spirited Away', 2001, 'Sen to Chihiro'),
     ['Spirited Away 2001', 'Sen to Chihiro 2001']);
   assert.deepEqual(buildQueries({ type: 'series', imdbId: 'tt2', season: 2, episode: 3 }, 'GoT', undefined, 'Alt'),
-    ['GoT S02E03', 'GoT S02', 'Alt S02E03', 'Alt S02']);
+    ['GoT S02E03', 'GoT', 'Alt S02E03', 'Alt']);
 });
 
 function fakeMetadata(title: ResolvedTitle | (() => never)): MetadataProvider {
@@ -143,7 +143,7 @@ test('findReleases resolves, searches every query, dedupes, filters, and ranks',
       release('Totally Different Show S02E03 1080p', { seeders: 99 }), // title mismatch
       { ...release('Game of Thrones S02E03 1080p usenet', { seeders: 5 }), protocol: 'usenet' },
     ],
-    'Game of Thrones S02': [
+    'Game of Thrones': [
       release('Game of Thrones S02E03 2160p WEB-DL', { seeders: 10, infoHash: 'a'.repeat(40) }), // dupe by infoHash
       release('Game of Thrones S02 COMPLETE 1080p BluRay', { seeders: 8 }),
     ],
@@ -169,7 +169,7 @@ test('findReleases short-circuits when Prowlarr is unconfigured and never resolv
 test('findReleases tolerates a failing query and still returns the other results', async t => {
   const base = await listen(createServer((request, response) => {
     const query = new URL(request.url!, 'http://x').searchParams.get('query') ?? '';
-    if (query.endsWith('S02')) { response.statusCode = 500; response.end('indexer exploded'); return; }
+    if (query === 'Game of Thrones') { response.statusCode = 500; response.end('indexer exploded'); return; }
     response.end(JSON.stringify([release('Game of Thrones S02E03 1080p WEB-DL', { seeders: 12 })]));
   }), t);
   const source = origin(new ProwlarrClient({ url: base, apiKey: 'k' }));
@@ -178,12 +178,12 @@ test('findReleases tolerates a failing query and still returns the other results
   assert.deepEqual(results.map(candidate => candidate.release.title), ['Game of Thrones S02E03 1080p WEB-DL']);
 });
 
-test('findReleases returns an episode result when its sibling season query times out', async () => {
+test('findReleases returns an episode result when its sibling title query times out', async () => {
   const source: ReleaseSource = {
     configured: true,
     test: async () => ({ ok: true, code: 'connected', message: 'Connected successfully.' }),
     search: async (query, signal) => {
-      if (!query.endsWith('S02')) return [release('Game of Thrones S02E03 1080p WEB-DL', { seeders: 12 })];
+      if (query !== 'Game of Thrones') return [release('Game of Thrones S02E03 1080p WEB-DL', { seeders: 12 })];
       return await new Promise<never>((_, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
     },
   };
@@ -191,7 +191,7 @@ test('findReleases returns an episode result when its sibling season query times
   const started = Date.now();
   const results = await findReleases({ id: idOf(wanted), metadata: fakeMetadata(wanted), sources: [origin(source)], signal: AbortSignal.timeout(1000), queryTimeoutMs: 20 });
   assert.deepEqual(results.map(candidate => candidate.release.title), ['Game of Thrones S02E03 1080p WEB-DL']);
-  assert.ok(Date.now() - started < 250, 'the slow season query is cut short without discarding the episode result');
+  assert.ok(Date.now() - started < 250, 'the slow title query is cut short without discarding the episode result');
 });
 
 test('findReleases filters to an allow-set of resolutions and languages, not a cap or single value; untagged releases always pass', async t => {

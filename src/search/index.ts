@@ -37,7 +37,11 @@ export function buildQueries(id: MediaId, title: string, year?: number, alternat
   const titles = alternateTitle ? [title, alternateTitle] : [title];
   if (id.type === 'movie') return titles.map(t => (year ? `${t} ${year}` : t));
   const tag = `S${pad(id.season ?? 0)}`;
-  return titles.flatMap(t => [`${t} ${tag}E${pad(id.episode ?? 0)}`, `${t} ${tag}`]);
+  // The precise episode query finds individual releases. Prowlarr/indexers
+  // frequently time out on the `S01` shorthand while their normal title
+  // search returns season packs promptly; matching below narrows that broader
+  // response to the requested season and episode.
+  return titles.flatMap(t => [`${t} ${tag}E${pad(id.episode ?? 0)}`, t]);
 }
 
 // Allow-set filtering: an empty set means no filter. A release is dropped

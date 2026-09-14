@@ -40,8 +40,8 @@ test('findReleases queries every configured source and merges and dedupes their 
     'Game of Thrones S02E03 1080p WEB-DL',
   ]);
   assert.deepEqual([...log].sort(), [
-    'prowlarr:Game of Thrones S02', 'prowlarr:Game of Thrones S02E03',
-    'torznab:Game of Thrones S02', 'torznab:Game of Thrones S02E03',
+    'prowlarr:Game of Thrones', 'prowlarr:Game of Thrones S02E03',
+    'torznab:Game of Thrones', 'torznab:Game of Thrones S02E03',
   ], 'both sources run every query');
 });
 
