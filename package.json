@@ -38,8 +38,8 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^26.5.1",
-    "oxlint": "1.82.0",
+    "@types/node": "^26.6.1",
+    "oxlint": "1.83.0",
     "stremthru": "0.13.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
