@@ -36,12 +36,12 @@
     "lint": "oxlint"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "^1.63.0",
-    "@types/node": "^26.5.1",
-    "oxlint": "1.82.0",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "oxlint": "1.89.0",
     "stremthru": "0.13.0",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "allowScripts": {
